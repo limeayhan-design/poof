@@ -91,4 +91,30 @@ export const NativeFeatures = {
       return true;
     } catch (e) { console.warn('[clipboard] write failed:', e); return false; }
   },
+
+  /**
+   * Check for an available update and, if one exists, download + install it.
+   * Silent on failure (no update endpoint, offline, etc.). Returns the new
+   * version string if an update was installed, null otherwise. Caller must
+   * ask the user to restart — the new binary only takes effect on next launch.
+   */
+  async checkForUpdates() {
+    if (!NativeBridge.isAvailable) return null;
+    try {
+      const info = await NativeBridge.invoke('plugin:updater|check');
+      if (!info || !info.available) return null;
+      await NativeBridge.invoke('plugin:updater|download_and_install');
+      return info.version || 'new version';
+    } catch (e) {
+      console.warn('[updater] check failed:', e);
+      return null;
+    }
+  },
+
+  /** Restart the current app. */
+  async restart() {
+    if (!NativeBridge.isAvailable) return;
+    try { await NativeBridge.invoke('plugin:process|restart'); }
+    catch (e) { console.warn('[process] restart failed:', e); }
+  },
 };

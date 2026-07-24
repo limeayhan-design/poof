@@ -466,6 +466,17 @@ if (NativeFeatures.isAvailable) {
     const file = new File([blob], name, { type: mime });
     await sendFilesToSelected([file]);
   });
+
+  // Silent auto-update check on launch. Delay 5s so we don't compete with
+  // startup work. If a new version is installed, prompt the user to restart.
+  setTimeout(() => {
+    NativeFeatures.checkForUpdates().then((version) => {
+      if (!version) return;
+      showRetryToast(`Poof ${version} ready — restart to apply`, () => {
+        NativeFeatures.restart();
+      }, 'Restart');
+    });
+  }, 5000);
 }
 
 signaling.addEventListener('disconnected', () => {
@@ -626,10 +637,10 @@ async function sendWithRetry(file, targetId, maxAttempts) {
   throw lastErr || new Error('send-failed');
 }
 
-function showRetryToast(msg, onRetry) {
+function showRetryToast(msg, onRetry, buttonLabel = 'Retry') {
   const el = document.createElement('div');
   el.className = 'toast toast-error';
-  el.innerHTML = `<span>${escapeHtml(msg)}</span><button class="toast-btn">Retry</button>`;
+  el.innerHTML = `<span>${escapeHtml(msg)}</span><button class="toast-btn">${escapeHtml(buttonLabel)}</button>`;
   el.querySelector('.toast-btn').addEventListener('click', () => {
     el.remove();
     onRetry();
