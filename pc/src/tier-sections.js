@@ -161,6 +161,7 @@ function renderFamily(root, ctx) {
   const peers = ctx.peers || [];
   const colors = ['#FF7A9C', '#5B8BFF', '#8B7EFF', '#3FBF7F', '#FFBF3C'];
   const onlineCount = peers.filter((p) => ctx.isPeerOnline?.(p.id)).length;
+  const kid = ctx.kidState || { enabled: false, quietStart: '', quietEnd: '' };
 
   const membersHTML = peers.length === 0
     ? `
@@ -197,6 +198,11 @@ function renderFamily(root, ctx) {
     </div>
   `).join('');
 
+  const dropDisabled = onlineCount === 0;
+  const kidStatus = kid.enabled
+    ? (kid.quietStart && kid.quietEnd ? `On · quiet ${kid.quietStart}–${kid.quietEnd}` : 'On')
+    : 'Off';
+
   root.innerHTML = `
     <div class="ts-header">
       <span class="ts-header-icon" style="color:${accent}">${svg.house}</span>
@@ -209,43 +215,45 @@ function renderFamily(root, ctx) {
     ${membersHTML}
     ${recentHTML ? `<div class="ts-recent-list">${recentHTML}</div>` : ''}
 
-    <button class="ts-row" data-action="family-drop" style="--tier-accent:${accent};border:1px solid ${accent}5A">
+    <button class="ts-row" data-action="family-drop" ${dropDisabled ? 'disabled' : ''} style="--tier-accent:${accent};border:1px solid ${accent}5A;opacity:${dropDisabled ? '0.55' : '1'}">
       <span class="ts-row-icon" style="background:linear-gradient(135deg,${accent},${glow});color:#fff">${svg.broadcast}</span>
       <span class="ts-row-body">
         <span class="ts-row-title-line">
           <span class="ts-row-title">Drop for family</span>
-          ${pill('preview', accent)}
         </span>
-        <span class="ts-row-sub">Everyone receives instantly</span>
+        <span class="ts-row-sub">${dropDisabled ? 'No family device online' : `Send to ${onlineCount} device${onlineCount === 1 ? '' : 's'} at once`}</span>
       </span>
-      <span class="ts-row-arrow" style="color:#8B95A7">${svg.chevronRight}</span>
+      <span class="ts-row-arrow" style="color:${dropDisabled ? '#8B95A7' : accent}">${svg.chevronRight}</span>
     </button>
 
     <button class="ts-slim" data-action="kid-controls" style="--tier-accent:${accent}">
-      <span class="ts-slim-icon">${svg.lock}</span>
+      <span class="ts-slim-icon" style="color:${kid.enabled ? accent : ''}">${svg.lock}</span>
       <span class="ts-slim-title">Kid controls</span>
-      <span class="ts-slim-status">Coming soon</span>
+      <span class="ts-slim-status" style="color:${kid.enabled ? accent : '#8B95A7'}">${kidStatus}</span>
       <span class="ts-slim-arrow">${svg.chevronRight}</span>
     </button>
   `;
 
-  root.querySelector('[data-action="invite-family"]')?.addEventListener('click', () => ctx.openFeaturePreview({
-    icon: '👨‍👩‍👧', title: 'Invite your family', tagline: 'Pair phones, tablets, and laptops',
-    status: 'available', accent,
-    description: 'Click the gear icon at the top right and pair a device. Your family appears here with live online status and instant broadcast.',
-  }));
-  root.querySelector('[data-action="family-drop"]')?.addEventListener('click', () => ctx.openFeaturePreview({
-    icon: '📣', title: 'Drop for family', tagline: 'Broadcast to everyone at once',
-    status: 'preview', accent,
-    description: peers.length > 0
-      ? 'Send a photo, video, or file and every paired family member gets it instantly. One tap, everywhere. Rolling out next update.'
-      : 'Pair at least one family device first, then this becomes a one-tap broadcast to everyone.',
-  }));
-  root.querySelector('[data-action="kid-controls"]')?.addEventListener('click', () => ctx.openFeaturePreview({
-    icon: '🛡', title: 'Kid controls', tagline: 'Safe sharing for younger family',
-    status: 'coming-soon', accent,
-    description: "Approve or block incoming files before they land on your kid's device. Schedule quiet hours, review activity, and lock sensitive folders.",
-  }));
+  root.querySelector('[data-action="invite-family"]')?.addEventListener('click', () => {
+    if (ctx.openAddDevice) ctx.openAddDevice();
+    else ctx.openFeaturePreview?.({
+      icon: '👨‍👩‍👧', title: 'Invite your family', tagline: 'Pair phones, tablets, and laptops',
+      status: 'available', accent,
+      description: 'Click the gear icon at the top right and pair a device.',
+    });
+  });
+  root.querySelector('[data-action="family-drop"]')?.addEventListener('click', () => {
+    if (dropDisabled) return;
+    ctx.familyDrop?.();
+  });
+  root.querySelector('[data-action="kid-controls"]')?.addEventListener('click', () => {
+    if (ctx.openKidControls) ctx.openKidControls();
+    else ctx.openFeaturePreview?.({
+      icon: '🛡', title: 'Kid controls', tagline: 'Safe sharing for younger family',
+      status: 'coming-soon', accent,
+      description: 'Approve or block incoming files, schedule quiet hours.',
+    });
+  });
 }
 
 // ── Devium ─────────────────────────────────────────────────────────────

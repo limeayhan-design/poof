@@ -1855,3 +1855,108 @@ body::after {
   margin: 0 0 18px;
   text-align: left;
 }
+
+/* ── Kid controls sheet (Family tier) ─────────────────────────────── */
+.sheet {
+  border: 1px solid var(--border-strong);
+  border-radius: 22px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  padding: 22px;
+  max-width: 440px;
+  width: calc(100% - 32px);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  backdrop-filter: blur(24px);
+}
+.sheet::backdrop {
+  background: rgba(10, 7, 20, 0.75);
+  backdrop-filter: blur(12px);
+}
+.sheet-form { display: flex; flex-direction: column; gap: 14px; }
+.sheet-head {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sheet-title { font-size: 20px; font-weight: 700; margin: 0; }
+.sheet-close {
+  width: 30px; height: 30px; border-radius: 999px;
+  background: rgba(255,255,255,0.08); border: none;
+  color: rgba(255,255,255,0.7); cursor: pointer;
+  font-size: 14px;
+}
+.sheet-sub {
+  font-size: 13px; color: rgba(255,255,255,0.6); margin: 0;
+}
+.sheet-foot { display: flex; justify-content: flex-end; margin-top: 4px; }
+
+.kid-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+}
+.kid-row-title { font-size: 14px; font-weight: 600; }
+.kid-row-sub   { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 2px; }
+.kid-switch {
+  appearance: none;
+  width: 44px; height: 26px; border-radius: 999px;
+  background: rgba(255,255,255,0.14);
+  position: relative; cursor: pointer;
+  transition: background var(--t-med);
+  flex-shrink: 0;
+}
+.kid-switch::after {
+  content: '';
+  position: absolute; top: 3px; left: 3px;
+  width: 20px; height: 20px; border-radius: 999px;
+  background: #fff;
+  transition: transform var(--t-med);
+}
+.kid-switch:checked { background: var(--tier-accent, #FF7A9C); }
+.kid-switch:checked::after { transform: translateX(18px); }
+
+.kid-times { display: flex; align-items: center; gap: 6px; }
+.kid-times span { color: rgba(255,255,255,0.5); font-size: 12px; }
+.kid-time {
+  appearance: none;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  color-scheme: dark;
+}
+.kid-row-times { align-items: flex-start; flex-direction: column; align-items: stretch; }
+.kid-row-times .kid-times { justify-content: flex-end; }
+
+/* ── Kid Mode approval toast ──────────────────────────────────────── */
+.toast-approval {
+  flex-direction: column;
+  align-items: stretch;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border-color: rgba(255, 122, 156, 0.35);
+  background: linear-gradient(135deg, rgba(255,122,156,0.10), var(--bg-elevated));
+  min-width: 300px;
+  gap: 10px;
+}
+.toast-approval-head { font-size: 11px; color: rgba(255,255,255,0.65); }
+.toast-approval-head b { color: #fff; font-weight: 600; }
+.toast-approval-body { display: flex; align-items: center; gap: 12px; }
+.toast-approval-icon { font-size: 22px; }
+.toast-approval-meta { flex: 1; min-width: 0; }
+.toast-approval-name {
+  font-weight: 600; font-size: 13px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.toast-approval-size { font-size: 11px; color: rgba(255,255,255,0.55); }
+.toast-approval-actions { display: flex; gap: 8px; justify-content: flex-end; }
+.toast-approval .toast-btn-block {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.75);
+}
+.toast-approval .toast-btn-approve {
+  background: #FF7A9C;
+  color: #fff;
+}

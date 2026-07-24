@@ -749,6 +749,152 @@ async function sendFilesToSelected(files) {
   drainPendingSend();
 }
 
+async function sendFilesToAllPeers(files) {
+  if (!files.length) return;
+  const targets = store.peers.map((p) => p.id).filter((id) => state.online.has(id));
+  if (!targets.length) { toast('No family device online'); return; }
+  state.pendingSend.files.push(...files);
+  state.pendingSend.targets = targets;
+  toast(`Broadcasting to ${targets.length} device${targets.length === 1 ? '' : 's'}`);
+  drainPendingSend();
+}
+
+function pickFilesThen(handler) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.multiple = true;
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.addEventListener('change', async () => {
+    const files = [...input.files];
+    input.remove();
+    if (files.length) await handler(files);
+  }, { once: true });
+  input.click();
+}
+
+function familyDrop() {
+  const online = store.peers.filter((p) => state.online.has(p.id));
+  if (!online.length) { toast('Pair at least one family device first'); return; }
+  pickFilesThen((files) => sendFilesToAllPeers(files));
+}
+
+// ---- Kid controls (Family tier, on-device only) ---------------------
+
+const KID = {
+  KEY_ENABLED: 'poof.kid.enabled',
+  KEY_QSTART:  'poof.kid.quietStart',
+  KEY_QEND:    'poof.kid.quietEnd',
+};
+
+function kidState() {
+  return {
+    enabled:    localStorage.getItem(KID.KEY_ENABLED) === '1',
+    quietStart: localStorage.getItem(KID.KEY_QSTART) || '',
+    quietEnd:   localStorage.getItem(KID.KEY_QEND)   || '',
+  };
+}
+function setKidState({ enabled, quietStart, quietEnd }) {
+  localStorage.setItem(KID.KEY_ENABLED, enabled ? '1' : '0');
+  localStorage.setItem(KID.KEY_QSTART, quietStart || '');
+  localStorage.setItem(KID.KEY_QEND,   quietEnd   || '');
+}
+function isInQuietHours() {
+  const { quietStart, quietEnd } = kidState();
+  if (!quietStart || !quietEnd || quietStart === quietEnd) return false;
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const [sH, sM] = quietStart.split(':').map(Number);
+  const [eH, eM] = quietEnd.split(':').map(Number);
+  const start = sH * 60 + sM, end = eH * 60 + eM;
+  return start < end ? (nowMin >= start && nowMin < end) : (nowMin >= start || nowMin < end);
+}
+
+function promptKidApproval({ senderName, meta, blob }, onApprove, onBlock) {
+  const el = document.createElement('div');
+  el.className = 'toast toast-approval';
+  el.innerHTML = `
+    <div class="toast-approval-head">Incoming file · <b>${escapeHtml(senderName)}</b></div>
+    <div class="toast-approval-body">
+      <span class="toast-approval-icon">📥</span>
+      <div class="toast-approval-meta">
+        <div class="toast-approval-name">${escapeHtml(meta.name || 'file')}</div>
+        <div class="toast-approval-size">${formatBytes(blob.size)}</div>
+      </div>
+    </div>
+    <div class="toast-approval-actions">
+      <button class="toast-btn toast-btn-block">Block</button>
+      <button class="toast-btn toast-btn-approve">Approve</button>
+    </div>
+  `;
+  toastRoot.appendChild(el);
+  const finish = (fn) => { el.remove(); fn?.(); };
+  el.querySelector('.toast-btn-approve').addEventListener('click', () => finish(onApprove));
+  el.querySelector('.toast-btn-block').addEventListener('click',   () => finish(onBlock));
+  setTimeout(() => { if (el.isConnected) finish(onBlock); }, 45000);
+}
+
+function openKidControlsSheet() {
+  const st = kidState();
+  let dlg = document.getElementById('modal-kid');
+  if (!dlg) {
+    dlg = document.createElement('dialog');
+    dlg.id = 'modal-kid';
+    dlg.className = 'sheet kid-sheet';
+    dlg.innerHTML = `
+      <form method="dialog" class="sheet-form">
+        <header class="sheet-head">
+          <h2 class="sheet-title">Kid controls</h2>
+          <button class="sheet-close" value="cancel" aria-label="Close">✕</button>
+        </header>
+        <p class="sheet-sub">Approve or block incoming files on this device before they land.</p>
+
+        <label class="kid-row">
+          <div class="kid-row-text">
+            <div class="kid-row-title">Kid Mode</div>
+            <div class="kid-row-sub">Every incoming file needs approval</div>
+          </div>
+          <input type="checkbox" id="kid-enabled" class="kid-switch"/>
+        </label>
+
+        <div class="kid-row kid-row-times">
+          <div class="kid-row-text">
+            <div class="kid-row-title">Quiet hours</div>
+            <div class="kid-row-sub">Auto-block files during this window</div>
+          </div>
+          <div class="kid-times">
+            <input type="time" id="kid-qstart" class="kid-time"/>
+            <span>→</span>
+            <input type="time" id="kid-qend"   class="kid-time"/>
+          </div>
+        </div>
+
+        <div class="sheet-foot">
+          <button class="poof-btn" value="save" id="kid-save">Save</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(dlg);
+    dlg.querySelector('#kid-save').addEventListener('click', (e) => {
+      e.preventDefault();
+      setKidState({
+        enabled:    dlg.querySelector('#kid-enabled').checked,
+        quietStart: dlg.querySelector('#kid-qstart').value,
+        quietEnd:   dlg.querySelector('#kid-qend').value,
+      });
+      const now = kidState();
+      toast(now.enabled ? 'Kid Mode on' : 'Kid Mode off');
+      dlg.close('save');
+      renderTierUI();
+    });
+    dlg.querySelector('.sheet-close').addEventListener('click', () => dlg.close('cancel'));
+  }
+  dlg.querySelector('#kid-enabled').checked = st.enabled;
+  dlg.querySelector('#kid-qstart').value    = st.quietStart;
+  dlg.querySelector('#kid-qend').value      = st.quietEnd;
+  dlg.showModal();
+}
+
 async function drainPendingSend() {
   const { files, targets } = state.pendingSend;
   if (!files.length || !targets.length) return;
@@ -855,12 +1001,7 @@ transfer.addEventListener('incoming-meta', ({ detail }) => {
   setHistoryUnread(true);
   renderActivity();
 });
-transfer.addEventListener('completed', ({ detail }) => {
-  const t = state.transfers.get(detail.id); if (t) { t.done = true; t.bytes = t.total; t.updatedAt = Date.now(); }
-  renderActivity();
-  // Inside Tauri: skip the in-webview preview (it decodes the whole blob and
-  // freezes the event loop long enough to kill the socket). Write to disk and
-  // let macOS open it with the default app.
+function acceptReceivedFile(detail) {
   if (NativeFeatures.isAvailable) {
     NativeFeatures.saveBlob(detail.blob, detail.meta.name).then((path) => {
       if (path) {
@@ -878,6 +1019,27 @@ transfer.addEventListener('completed', ({ detail }) => {
     offerDownload(detail.meta, detail.blob);
   }
   toast(`Received ${detail.meta.name}`);
+}
+
+transfer.addEventListener('completed', ({ detail }) => {
+  const t = state.transfers.get(detail.id); if (t) { t.done = true; t.bytes = t.total; t.updatedAt = Date.now(); }
+  renderActivity();
+  // Kid Mode (Family tier) intercepts writes: quiet hours auto-block, otherwise ask.
+  const isFamily = currentTier() === PoofTier.Family;
+  const kid = kidState();
+  if (isFamily && kid.enabled) {
+    if (isInQuietHours()) {
+      toast(`Blocked ${detail.meta.name} · quiet hours`);
+      return;
+    }
+    const senderName = nameFor(state.connectedPeerId) || 'Unknown device';
+    promptKidApproval({ senderName, meta: detail.meta, blob: detail.blob },
+      () => acceptReceivedFile(detail),
+      () => toast(`Blocked ${detail.meta.name}`),
+    );
+    return;
+  }
+  acceptReceivedFile(detail);
 });
 transfer.addEventListener('cancelled', ({ detail }) => {
   const t = state.transfers.get(detail.id); if (t) { t.done = true; t.updatedAt = Date.now(); }
@@ -1418,6 +1580,10 @@ function renderTierUI() {
     openRemoteFiles,
     openScreenMirror,
     openFeaturePreview,
+    openAddDevice: openPairing,
+    familyDrop,
+    openKidControls: openKidControlsSheet,
+    kidState: kidState(),
     toast,
   });
 }
