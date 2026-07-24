@@ -97,15 +97,30 @@ export const NativeFeatures = {
    * `onDetected(version)` fires the moment the manifest says a newer build
    * exists — before the download starts — so the app can toast the user.
    * Returns the version string once install completes, null otherwise.
+   *
+   * Tauri v2 IPC contract (from tauri-plugin-updater v2.10.x):
+   *   plugin:updater|check → null | { rid, version, currentVersion, ... }
+   *   plugin:updater|download_and_install → needs { rid, onEvent: Channel }
+   *
+   * Channels are serialized as the sentinel string `__CHANNEL__:<callbackId>`,
+   * where callbackId comes from __TAURI_INTERNALS__.transformCallback.
    */
   async checkForUpdates(onDetected) {
     if (!NativeBridge.isAvailable) return null;
     try {
-      const info = await NativeBridge.invoke('plugin:updater|check');
-      if (!info || !info.available) return null;
-      const version = info.version || 'new version';
+      const metadata = await NativeBridge.invoke('plugin:updater|check');
+      if (!metadata) return null;
+      const version = metadata.version || 'new version';
       try { onDetected?.(version); } catch { /* noop */ }
-      await NativeBridge.invoke('plugin:updater|download_and_install');
+
+      const internals = window.__TAURI_INTERNALS__;
+      const callbackId = internals.transformCallback(() => {}, false);
+      const channel = { toJSON() { return `__CHANNEL__:${callbackId}`; } };
+
+      await NativeBridge.invoke('plugin:updater|download_and_install', {
+        onEvent: channel,
+        rid: metadata.rid,
+      });
       return version;
     } catch (e) {
       console.warn('[updater] check failed:', e);
