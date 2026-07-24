@@ -94,17 +94,19 @@ export const NativeFeatures = {
 
   /**
    * Check for an available update and, if one exists, download + install it.
-   * Silent on failure (no update endpoint, offline, etc.). Returns the new
-   * version string if an update was installed, null otherwise. Caller must
-   * ask the user to restart — the new binary only takes effect on next launch.
+   * `onDetected(version)` fires the moment the manifest says a newer build
+   * exists — before the download starts — so the app can toast the user.
+   * Returns the version string once install completes, null otherwise.
    */
-  async checkForUpdates() {
+  async checkForUpdates(onDetected) {
     if (!NativeBridge.isAvailable) return null;
     try {
       const info = await NativeBridge.invoke('plugin:updater|check');
       if (!info || !info.available) return null;
+      const version = info.version || 'new version';
+      try { onDetected?.(version); } catch { /* noop */ }
       await NativeBridge.invoke('plugin:updater|download_and_install');
-      return info.version || 'new version';
+      return version;
     } catch (e) {
       console.warn('[updater] check failed:', e);
       return null;

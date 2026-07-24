@@ -22,7 +22,8 @@ import { LanDiscovery }     from './src/lan-discovery.js';
 import { NativeFeatures }   from './src/native-features.js';
 import { RemoteFiles }      from './src/remote-files.js';
 import { ScreenMirror }     from './src/screen-mirror.js';
-import { currentTier, tierLimits, PoofTier } from './src/tier.js';
+import { currentTier, tierLimits, tierMeta, setTier, PoofTier, TierMeta } from './src/tier.js';
+import { renderTierSection } from './src/tier-sections.js';
 import { TransferTracker, formatBytes, formatSpeed, formatEta }
                             from './src/transfer-tracker.js';
 
@@ -86,9 +87,15 @@ const rfList = document.querySelector('#rf-list');
 const rfEmpty = document.querySelector('#rf-empty');
 const rfBreadcrumb = document.querySelector('#rf-breadcrumb');
 const rfUpBtn = document.querySelector('#rf-up');
-const btnRemoteFiles = document.querySelector('#btn-remote-files');
 let rfCurrentPath = '';
 let rfPendingReq = null;
+
+function openRemoteFiles() {
+  if (!manager.isReady) { toast('Not connected'); return; }
+  rfCurrentPath = '';
+  rfBrowse('');
+  rfModal.showModal();
+}
 
 function rfRender(entries, path) {
   rfCurrentPath = path;
@@ -132,12 +139,6 @@ rfUpBtn?.addEventListener('click', () => {
   rfBrowse(parts.join('/'));
 });
 
-btnRemoteFiles?.addEventListener('click', () => {
-  if (!manager.isReady) { toast('Not connected'); return; }
-  rfCurrentPath = '';
-  rfBrowse('');
-  rfModal.showModal();
-});
 
 // -------- Screen Mirror --------------------------------------------
 const smModal = document.querySelector('#modal-screen-mirror');
@@ -146,19 +147,21 @@ const smEmpty = document.querySelector('#sm-empty');
 const smStart = document.querySelector('#sm-start');
 const smStop = document.querySelector('#sm-stop');
 const smClose = document.querySelector('#sm-close');
-const smSub = document.querySelector('#screen-mirror-sub');
-const btnScreenMirror = document.querySelector('#btn-screen-mirror');
+function openScreenMirror() {
+  if (!manager.isReady) { toast('Not connected'); return; }
+  smModal.showModal();
+}
 
 screenMirror.addEventListener('receiving-start', () => {
   smEmpty.hidden = true;
   smFrame.hidden = false;
   if (!smModal.open) smModal.showModal();
-  smSub.textContent = 'Live from peer';
+  renderTierUI();
 });
 screenMirror.addEventListener('receiving-stop', () => {
   smFrame.hidden = true;
   smEmpty.hidden = false;
-  smSub.textContent = 'Cast to peer';
+  renderTierUI();
 });
 screenMirror.addEventListener('frame', (e) => {
   smFrame.src = e.detail.dataUrl;
@@ -166,17 +169,12 @@ screenMirror.addEventListener('frame', (e) => {
 screenMirror.addEventListener('broadcasting-start', () => {
   smStart.hidden = true;
   smStop.hidden = false;
-  smSub.textContent = 'Live · you are broadcasting';
+  renderTierUI();
 });
 screenMirror.addEventListener('broadcasting-stop', () => {
   smStart.hidden = false;
   smStop.hidden = true;
-  smSub.textContent = 'Cast to peer';
-});
-
-btnScreenMirror?.addEventListener('click', () => {
-  if (!manager.isReady) { toast('Not connected'); return; }
-  smModal.showModal();
+  renderTierUI();
 });
 smStart?.addEventListener('click', async () => {
   try { await screenMirror.startBroadcast(); }
@@ -614,16 +612,18 @@ if (NativeFeatures.isAvailable) {
     await sendFilesToSelected([file]);
   });
 
-  // Silent auto-update check on launch. Delay 5s so we don't compete with
-  // startup work. If a new version is installed, prompt the user to restart.
+  // Auto-update check on launch. 1.5s delay so the app has time to paint.
+  // Detect → toast "downloading" → install → toast "restart".
   setTimeout(() => {
-    NativeFeatures.checkForUpdates().then((version) => {
+    NativeFeatures.checkForUpdates((version) => {
+      toast(`Poof ${version} available — downloading…`);
+    }).then((version) => {
       if (!version) return;
       showRetryToast(`Poof ${version} ready — restart to apply`, () => {
         NativeFeatures.restart();
       }, 'Restart');
     });
-  }, 5000);
+  }, 1500);
 }
 
 signaling.addEventListener('disconnected', () => {
@@ -692,6 +692,7 @@ manager.addEventListener('state', ({ detail }) => {
 manager.addEventListener('ready', () => {
   clipboard.start();
   notifications.ensurePermission?.();
+  if (typeof renderTierUI === 'function') renderTierUI();
 });
 
 // ------------------------------------------------------------------
@@ -1337,10 +1338,132 @@ document.querySelectorAll('[data-close]').forEach((btn) => {
   });
 });
 
+// ------------------------------------------------------------------
+// Tier UI — pill, upgrade button, dynamic tier section, pricing sheet
+// ------------------------------------------------------------------
+
+const tierSectionEl = document.getElementById('tier-section');
+const tierPillEl    = document.getElementById('tier-pill');
+const btnUpgrade    = document.getElementById('btn-upgrade');
+const pricingModal  = document.getElementById('modal-pricing');
+const pricingListEl = document.getElementById('pricing-list');
+const featureModal  = document.getElementById('modal-feature');
+
+let signalingConnected = false;
+signaling.addEventListener('connected',    () => { signalingConnected = true; renderTierUI(); });
+signaling.addEventListener('disconnected', () => { signalingConnected = false; renderTierUI(); });
+
+function isPeerOnline(id) { return state.online.has(id); }
+function thisDeviceName() { return DeviceIdentity.name || 'This device'; }
+
+function openFeaturePreview(preview) {
+  document.getElementById('feature-icon').textContent = preview.icon || '✨';
+  document.getElementById('feature-title').textContent = preview.title;
+  document.getElementById('feature-tagline').textContent = preview.tagline || '';
+  const statusEl = document.getElementById('feature-status');
+  statusEl.textContent = preview.status === 'coming-soon' ? 'Coming soon' : preview.status === 'preview' ? 'Preview' : 'Available';
+  statusEl.style.color = preview.accent || '#5B8BFF';
+  statusEl.style.borderColor = (preview.accent || '#5B8BFF') + '55';
+  statusEl.style.background = (preview.accent || '#5B8BFF') + '22';
+  document.getElementById('feature-description').textContent = preview.description || '';
+  featureModal.showModal();
+}
+
+const SPARKLES_SVG = `
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" aria-hidden="true">
+    <path d="M11 4 L12.5 9.5 L18 11 L12.5 12.5 L11 18 L9.5 12.5 L4 11 L9.5 9.5 Z"/>
+    <path d="M19 3 L19.5 4.5 L21 5 L19.5 5.5 L19 7 L18.5 5.5 L17 5 L18.5 4.5 Z"/>
+    <path d="M5 17 L5.5 18.5 L7 19 L5.5 19.5 L5 21 L4.5 19.5 L3 19 L4.5 18.5 Z"/>
+  </svg>`;
+
+const CROWN_SVG = `
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" aria-hidden="true">
+    <path d="M4 12 L6 6 L9 12 L12 4 L15 12 L18 6 L20 12 L20 18 L4 18 Z"/>
+    <circle cx="12" cy="15" r="0.9" fill="rgba(0,0,0,0.35)"/>
+  </svg>`;
+
+function renderTierUI() {
+  const tier = currentTier();
+  const meta = tierMeta(tier);
+  document.body.dataset.tier = tier;
+  document.documentElement.style.setProperty('--tier-accent', meta.accent);
+  document.documentElement.style.setProperty('--tier-glow', meta.glow);
+
+  if (btnUpgrade) {
+    const isTop = tier === PoofTier.Devium || tier === PoofTier.Business;
+    btnUpgrade.innerHTML = isTop ? CROWN_SVG : SPARKLES_SVG;
+    btnUpgrade.setAttribute('aria-label', isTop ? 'Manage plan' : 'Upgrade');
+  }
+
+  if (tier === PoofTier.Standard) {
+    tierPillEl.hidden = true;
+  } else {
+    tierPillEl.hidden = false;
+    tierPillEl.textContent = meta.displayName;
+    tierPillEl.style.color = meta.accent;
+    tierPillEl.style.borderColor = meta.accent + '5A';
+    tierPillEl.style.background = meta.accent + '28';
+  }
+
+  renderTierSection(tier, tierSectionEl, {
+    peers: store.peers,
+    receivedFiles: transfer.receivedFiles || [],
+    isRTCConnected: manager.isReady,
+    isBroadcasting: screenMirror.isBroadcasting,
+    isSignalingConnected: signalingConnected,
+    deviceName: thisDeviceName(),
+    isPeerOnline,
+    pushClipboard: () => { clipboard.pushCurrent?.(); toast('Clipboard sent'); },
+    openFolderPicker: () => { fileInput.setAttribute('webkitdirectory', ''); fileInput.click(); setTimeout(() => fileInput.removeAttribute('webkitdirectory'), 500); },
+    openRemoteFiles,
+    openScreenMirror,
+    openFeaturePreview,
+    toast,
+  });
+}
+
+function renderPricingSheet() {
+  const active = currentTier();
+  const order = [PoofTier.Standard, PoofTier.Premium, PoofTier.Family, PoofTier.Devium, PoofTier.Business];
+  pricingListEl.innerHTML = order.map((t) => {
+    const meta = TierMeta[t];
+    const isActive = t === active;
+    return `
+      <button class="pricing-row" data-tier="${t}" style="--tier-accent:${meta.accent};${isActive ? 'border-color:' + meta.accent + ';' : ''}">
+        <span class="pricing-row-head">
+          <span class="pricing-row-name" style="color:${meta.accent}">${meta.displayName}</span>
+          <span class="pricing-row-price">${meta.priceLabel}</span>
+        </span>
+        <span class="pricing-row-tagline">${meta.tagline}</span>
+        <span class="pricing-row-cta" style="background:${isActive ? '#ffffff10' : meta.accent};color:${isActive ? '#8B95A7' : '#fff'}">${isActive ? 'Current plan' : 'Choose ' + meta.displayName}</span>
+      </button>
+    `;
+  }).join('');
+  pricingListEl.querySelectorAll('[data-tier]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const t = btn.dataset.tier;
+      if (t === currentTier()) { pricingModal.close(); return; }
+      setTier(t);
+      pricingModal.close();
+      toast(`Switched to ${TierMeta[t].displayName}`);
+    });
+  });
+}
+
+btnUpgrade?.addEventListener('click', () => {
+  renderPricingSheet();
+  pricingModal.showModal();
+});
+
+window.addEventListener('poof-tier-changed', renderTierUI);
+store.addEventListener('change', renderTierUI);
+transfer.addEventListener('outgoing-meta', renderTierUI);
+
 // Initial paint (no online info yet — that arrives after hello)
 renderDevices();
 renderPeersGrid();
 renderActivity();
+renderTierUI();
 maybeShowOnboarding();
 
 // ------------------------------------------------------------------
