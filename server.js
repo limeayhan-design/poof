@@ -1,0 +1,396 @@
+import { createServer } from 'node:http';
+import { randomBytes } from 'node:crypto';
+import { readFile, stat } from 'node:fs/promises';
+import { extname, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { networkInterfaces } from 'node:os';
+import { Server } from 'socket.io';
+import { Bonjour } from 'bonjour-service';
+
+const PORT = Number(process.env.PORT) || 3000;
+const PAIR_CODE_TTL_MS = 5 * 60 * 1000;
+const SESSION_TTL_MS = 5 * 60 * 1000;
+const PAIR_CODE_LEN = 6;
+const PAIR_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const MAX_PEERS = 2;
+
+const STATIC_ROOT = resolve(fileURLToPath(new URL('./pc/', import.meta.url)));
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.css':  'text/css; charset=utf-8',
+  '.js':   'text/javascript; charset=utf-8',
+  '.mjs':  'text/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg':  'image/svg+xml',
+  '.png':  'image/png',
+  '.jpg':  'image/jpeg',
+  '.ico':  'image/x-icon',
+  '.webmanifest': 'application/manifest+json',
+};
+
+// Pick the best LAN IPv4 for this host: prefer Wi-Fi (en0/en1 on macOS,
+// wlan* on Linux), fall back to any non-internal IPv4.
+function pickLanIp() {
+  const ifaces = networkInterfaces();
+  const candidates = [];
+  for (const [name, addrs] of Object.entries(ifaces)) {
+    for (const a of addrs || []) {
+      if (a.family !== 'IPv4' || a.internal) continue;
+      const isWifi = /^en0$|^en1$|wlan|wifi/i.test(name);
+      candidates.push({ name, address: a.address, isWifi });
+    }
+  }
+  candidates.sort((a, b) => Number(b.isWifi) - Number(a.isWifi));
+  return candidates[0]?.address || null;
+}
+
+async function serveStatic(req, res) {
+  const urlPath = decodeURIComponent(req.url.split('?')[0]);
+  const rel = urlPath === '/' ? '/index.html' : urlPath;
+  const filePath = resolve(STATIC_ROOT, '.' + rel);
+  if (!(filePath === STATIC_ROOT || filePath.startsWith(STATIC_ROOT + sep))) {
+    res.writeHead(403); res.end(); return true;
+  }
+  try {
+    const s = await stat(filePath);
+    if (!s.isFile()) return false;
+    const body = await readFile(filePath);
+    res.writeHead(200, {
+      'content-type': MIME[extname(filePath).toLowerCase()] || 'application/octet-stream',
+      'cache-control': 'no-cache',
+    });
+    res.end(body);
+    return true;
+  } catch { return false; }
+}
+
+const httpServer = createServer(async (req, res) => {
+  if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
+  if (req.url === '/health') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: true,
+      devices: devices.size,
+      sessions: sessions.size,
+      pairingCodes: pairingCodes.size,
+    }));
+    return;
+  }
+  if (req.url === '/local-url') {
+    const ip = pickLanIp();
+    const url = ip ? `http://${ip}:${PORT}` : null;
+    res.writeHead(200, {
+      'content-type': 'application/json',
+      'cache-control': 'no-cache',
+    });
+    res.end(JSON.stringify({ url }));
+    return;
+  }
+  if (await serveStatic(req, res)) return;
+  res.writeHead(404); res.end();
+});
+
+const io = new Server(httpServer, {
+  cors: { origin: '*', methods: ['GET', 'POST'] },
+  maxHttpBufferSize: 4096,
+  pingInterval: 25000,
+  pingTimeout: 20000,
+  transports: ['websocket'],
+});
+
+// -------------------------------------------------------------
+// State
+// -------------------------------------------------------------
+
+/**
+ * deviceId → { socketId, name, platform, knownPeerIds: Set<string> }
+ * A device is present in this map iff its socket is currently connected AND
+ * it has completed the `hello` handshake.
+ */
+const devices = new Map();
+
+/** socketId → deviceId (reverse lookup) */
+const socketToDevice = new Map();
+
+/**
+ * code → { socketId, deviceInfo, timer }
+ * Short-lived pairing codes (5 min TTL). Consumed once.
+ */
+const pairingCodes = new Map();
+
+/**
+ * sessionId → { peers: Set<socketId>, timer }
+ * A WebRTC signalling session between exactly 2 sockets. Auto-destroyed on
+ * the last peer leaving or after TTL.
+ */
+const sessions = new Map();
+
+/** socketId → sessionId (reverse lookup, one session per socket at a time) */
+const socketToSession = new Map();
+
+// -------------------------------------------------------------
+// Helpers
+// -------------------------------------------------------------
+
+function randomCode(len, alphabet, taken) {
+  let out;
+  do {
+    const bytes = randomBytes(len);
+    out = '';
+    for (let i = 0; i < len; i++) out += alphabet[bytes[i] % alphabet.length];
+  } while (taken.has(out));
+  return out;
+}
+
+function publicDeviceInfo(deviceId) {
+  const d = devices.get(deviceId);
+  if (!d) return null;
+  return { deviceId, name: d.name, platform: d.platform };
+}
+
+function isOnline(deviceId) {
+  return devices.has(deviceId);
+}
+
+function broadcastPresence(deviceId, online) {
+  // Notify every currently-connected socket that has `deviceId` in its
+  // knownPeerIds set — those are the peers who care.
+  for (const [, d] of devices) {
+    if (d.knownPeerIds.has(deviceId)) {
+      io.to(d.socketId).emit(online ? 'peer-online' : 'peer-offline', { deviceId });
+    }
+  }
+}
+
+function scheduleSessionExpiry(sessionId) {
+  const s = sessions.get(sessionId);
+  if (!s) return;
+  clearTimeout(s.timer);
+  s.timer = setTimeout(() => destroySession(sessionId, 'expired'), SESSION_TTL_MS);
+}
+
+function destroySession(sessionId, reason) {
+  const s = sessions.get(sessionId);
+  if (!s) return;
+  clearTimeout(s.timer);
+  for (const sid of s.peers) {
+    socketToSession.delete(sid);
+    io.to(sid).emit('session-closed', { sessionId, reason });
+  }
+  sessions.delete(sessionId);
+}
+
+function leaveSession(socket, reason) {
+  const sessionId = socketToSession.get(socket.id);
+  if (!sessionId) return;
+  socketToSession.delete(socket.id);
+  const s = sessions.get(sessionId);
+  if (!s) return;
+  s.peers.delete(socket.id);
+  socket.to(sessionId).emit('peer-left', { sessionId, reason });
+  if (s.peers.size === 0) destroySession(sessionId, 'empty');
+}
+
+function cancelPairingCode(socket) {
+  for (const [code, entry] of pairingCodes) {
+    if (entry.socketId === socket.id) {
+      clearTimeout(entry.timer);
+      pairingCodes.delete(code);
+    }
+  }
+}
+
+// -------------------------------------------------------------
+// Wire events
+// -------------------------------------------------------------
+
+io.on('connection', (socket) => {
+  // ---- 1. Identity + subscription -----------------------------------------
+  socket.on('hello', (payload = {}, ack) => {
+    const { deviceId, name, platform, knownPeerIds = [] } = payload;
+    if (typeof deviceId !== 'string' || !deviceId) {
+      return ack?.({ ok: false, error: 'invalid-deviceId' });
+    }
+    // If a previous socket owned this deviceId, force it out (multiple tabs, reconnect).
+    const existing = devices.get(deviceId);
+    if (existing && existing.socketId !== socket.id) {
+      const oldSocket = io.sockets.sockets.get(existing.socketId);
+      oldSocket?.disconnect(true);
+      devices.delete(deviceId);
+      socketToDevice.delete(existing.socketId);
+    }
+
+    devices.set(deviceId, {
+      socketId: socket.id,
+      name: String(name || 'Unknown'),
+      platform: String(platform || 'unknown'),
+      knownPeerIds: new Set(knownPeerIds),
+    });
+    socketToDevice.set(socket.id, deviceId);
+
+    const online = knownPeerIds.filter(isOnline);
+    ack?.({ ok: true, onlinePeers: online });
+    broadcastPresence(deviceId, true);
+  });
+
+  socket.on('subscribe', ({ deviceIds = [] } = {}) => {
+    const me = socketToDevice.get(socket.id);
+    const d = me && devices.get(me);
+    if (!d) return;
+    for (const id of deviceIds) d.knownPeerIds.add(String(id));
+  });
+
+  socket.on('unsubscribe', ({ deviceIds = [] } = {}) => {
+    const me = socketToDevice.get(socket.id);
+    const d = me && devices.get(me);
+    if (!d) return;
+    for (const id of deviceIds) d.knownPeerIds.delete(String(id));
+  });
+
+  // ---- 2. Pairing (short-lived code exchange) -----------------------------
+  socket.on('pair-advertise', (_, ack) => {
+    const me = socketToDevice.get(socket.id);
+    if (!me) return ack?.({ ok: false, error: 'not-hello' });
+    cancelPairingCode(socket);
+    const code = randomCode(PAIR_CODE_LEN, PAIR_ALPHABET, pairingCodes);
+    const info = publicDeviceInfo(me);
+    const timer = setTimeout(() => {
+      pairingCodes.delete(code);
+      socket.emit('pair-expired', { code });
+    }, PAIR_CODE_TTL_MS);
+    pairingCodes.set(code, { socketId: socket.id, deviceInfo: info, timer });
+    ack?.({ ok: true, code });
+  });
+
+  socket.on('pair-cancel', () => cancelPairingCode(socket));
+
+  socket.on('pair-consume', ({ code } = {}, ack) => {
+    if (typeof code !== 'string') return ack?.({ ok: false, error: 'invalid-code' });
+    const entry = pairingCodes.get(code.toUpperCase());
+    if (!entry) return ack?.({ ok: false, error: 'not-found' });
+
+    const me = socketToDevice.get(socket.id);
+    const myInfo = me && publicDeviceInfo(me);
+    if (!myInfo) return ack?.({ ok: false, error: 'not-hello' });
+    if (entry.socketId === socket.id) return ack?.({ ok: false, error: 'self-pair' });
+
+    clearTimeout(entry.timer);
+    pairingCodes.delete(code.toUpperCase());
+
+    // Tell both sides who the other is.
+    io.to(entry.socketId).emit('pair-succeeded', { peer: myInfo });
+    ack?.({ ok: true, peer: entry.deviceInfo });
+
+    // Mutual subscribe so presence broadcasts flow.
+    const consumer = devices.get(me);
+    const host = devices.get(entry.deviceInfo.deviceId);
+    if (consumer && entry.deviceInfo?.deviceId) consumer.knownPeerIds.add(entry.deviceInfo.deviceId);
+    if (host) host.knownPeerIds.add(me);
+  });
+
+  // ---- 3. Direct connection to a known peer -------------------------------
+  socket.on('session-open', ({ targetDeviceId } = {}, ack) => {
+    if (typeof targetDeviceId !== 'string') return ack?.({ ok: false, error: 'invalid-target' });
+    const target = devices.get(targetDeviceId);
+    if (!target) return ack?.({ ok: false, error: 'offline' });
+    const me = socketToDevice.get(socket.id);
+    if (!me) return ack?.({ ok: false, error: 'not-hello' });
+
+    // Reuse an existing session if the two sockets already share one.
+    let sessionId = socketToSession.get(socket.id);
+    if (sessionId) {
+      const s = sessions.get(sessionId);
+      if (s && s.peers.has(target.socketId)) {
+        return ack?.({ ok: true, sessionId, initiator: true });
+      }
+      leaveSession(socket, 'switch');
+    }
+    if (socketToSession.has(target.socketId)) {
+      // Target is busy in another session — evict it so we can talk.
+      const targetSocket = io.sockets.sockets.get(target.socketId);
+      if (targetSocket) leaveSession(targetSocket, 'preempted');
+    }
+
+    sessionId = randomCode(8, PAIR_ALPHABET, sessions);
+    const s = { peers: new Set([socket.id, target.socketId]), timer: null };
+    sessions.set(sessionId, s);
+    socketToSession.set(socket.id, sessionId);
+    socketToSession.set(target.socketId, sessionId);
+    socket.join(sessionId);
+    io.sockets.sockets.get(target.socketId)?.join(sessionId);
+    scheduleSessionExpiry(sessionId);
+
+    io.to(target.socketId).emit('session-opened', {
+      sessionId,
+      initiator: false,
+      from: publicDeviceInfo(me),
+    });
+    ack?.({ ok: true, sessionId, initiator: true });
+  });
+
+  socket.on('session-leave', () => leaveSession(socket, 'left'));
+
+  // Notify a paired peer that this device removed it from its paired list.
+  // Also drops mutual presence subscription so ghost "online" events stop.
+  socket.on('unpair', ({ deviceId } = {}) => {
+    if (typeof deviceId !== 'string' || !deviceId) return;
+    const me = socketToDevice.get(socket.id);
+    const meEntry = me && devices.get(me);
+    if (meEntry) meEntry.knownPeerIds.delete(deviceId);
+    const target = devices.get(deviceId);
+    if (target) {
+      const targetEntry = devices.get(deviceId);
+      if (targetEntry && me) targetEntry.knownPeerIds.delete(me);
+      io.to(target.socketId).emit('peer-unpaired', { deviceId: me });
+    }
+  });
+
+  // ---- 4. WebRTC relay ----------------------------------------------------
+  const relay = (event) => (payload) => {
+    const sessionId = socketToSession.get(socket.id);
+    if (!sessionId) return;
+    socket.to(sessionId).emit(event, { from: socket.id, ...payload });
+  };
+  socket.on('sdp-offer', relay('sdp-offer'));
+  socket.on('sdp-answer', relay('sdp-answer'));
+  socket.on('ice-candidate', relay('ice-candidate'));
+
+  // ---- 5. Cleanup ---------------------------------------------------------
+  socket.on('disconnect', () => {
+    cancelPairingCode(socket);
+    leaveSession(socket, 'disconnected');
+    const me = socketToDevice.get(socket.id);
+    socketToDevice.delete(socket.id);
+    if (me) {
+      const entry = devices.get(me);
+      if (entry && entry.socketId === socket.id) devices.delete(me);
+      broadcastPresence(me, false);
+    }
+  });
+});
+
+// Zero-config LAN discovery. iOS/macOS/Windows peers can find this gateway
+// automatically via mDNS without typing an IP.
+const bonjour = new Bonjour();
+let mdnsService = null;
+
+httpServer.listen(PORT, () => {
+  console.log(`[poof] signaling gateway listening on :${PORT}`);
+  const ip = pickLanIp();
+  mdnsService = bonjour.publish({
+    name: `Poof Gateway${ip ? ' — ' + ip : ''}`,
+    type: 'poof',
+    protocol: 'tcp',
+    port: PORT,
+    txt: { v: '1', ip: ip || '' },
+  });
+  console.log(`[poof] mDNS advertised as _poof._tcp.local. on :${PORT}`);
+});
+
+const shutdown = () => {
+  try { mdnsService?.stop(() => {}); } catch {}
+  try { bonjour.destroy(); } catch {}
+  io.close(() => httpServer.close(() => process.exit(0)));
+};
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

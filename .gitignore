@@ -1,0 +1,34 @@
+# Node
+node_modules/
+npm-debug.log*
+.npm
+
+# Rust / Tauri
+desktop/src-tauri/target/
+desktop/src-tauri/gen/schemas/
+
+# macOS
+.DS_Store
+*.swp
+
+# Xcode / iOS
+ios/**/DerivedData/
+ios/**/xcuserdata/
+ios/**/*.xcuserstate
+ios/**/build/
+ios/**/*.xcworkspace/xcuserdata/
+
+# Env & secrets
+.env
+.env.local
+*.pem
+*.p8
+*.p12
+*.mobileprovision
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log

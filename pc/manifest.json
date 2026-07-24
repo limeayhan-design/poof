@@ -1,0 +1,22 @@
+{
+  "name": "Poof",
+  "short_name": "Poof",
+  "description": "Ultra-fast P2P bridge between your iPhone and this device.",
+  "id": "/poof/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#171325",
+  "theme_color": "#6E6BD9",
+  "categories": ["utilities", "productivity"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Pair a device", "url": "./?pair=1" },
+    { "name": "History",       "url": "./?view=history" }
+  ]
+}

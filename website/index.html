@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Poof — Send Anywhere.</title>
+  <meta name="description" content="One app. Every device. Zero cloud. Send files, photos and clipboard between iPhone, Mac and PC — peer-to-peer, end-to-end encrypted." />
+  <meta name="theme-color" content="#8B7EFF" />
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="./style.css" />
+
+  <meta property="og:title" content="Poof — Send Anywhere." />
+  <meta property="og:description" content="One app. Every device. Zero cloud." />
+  <meta property="og:image" content="./favicon.svg" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="bg-noise" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <!-- Header -->
+  <header class="site-header">
+    <a href="#" class="brand" aria-label="Poof">
+      <span class="brand-mark"></span>
+      <span class="brand-name">Poof</span>
+    </a>
+    <nav class="site-nav">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#downloads">Downloads</a>
+      <a href="https://github.com/poof-app/poof" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <a href="#downloads" class="nav-cta">Get Poof</a>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        <span>Launching soon · Lifetime deal available</span>
+      </div>
+      <h1 class="hero-title">Send<br/>Anywhere.</h1>
+      <p class="hero-lead">One app. Every device. Zero cloud.</p>
+      <p class="hero-sub">Files, photos and clipboard travel peer-to-peer between iPhone, Mac and PC. Wire-speed. End-to-end encrypted. No account required.</p>
+
+      <div class="hero-cta">
+        <a href="#downloads" class="btn-primary" id="hero-download">
+          <span class="btn-label">Download for <span id="hero-os">your OS</span></span>
+          <span class="btn-sub">Free · macOS 12+</span>
+        </a>
+        <a href="#downloads" class="btn-ghost">All downloads →</a>
+      </div>
+
+      <div class="hero-trust">
+        <span>✓ Free forever</span>
+        <span>✓ Open source</span>
+        <span>✓ No account</span>
+      </div>
+    </div>
+
+    <div class="hero-visual" aria-hidden="true">
+      <div class="orbit"></div>
+      <div class="device device-mac"><div class="device-screen"></div></div>
+      <div class="device device-phone"><div class="device-screen"></div></div>
+      <div class="device device-pc"><div class="device-screen"></div></div>
+      <div class="poof-particle p1"></div>
+      <div class="poof-particle p2"></div>
+      <div class="poof-particle p3"></div>
+      <div class="poof-particle p4"></div>
+    </div>
+  </section>
+
+  <!-- Problem / Comparison -->
+  <section class="section problem">
+    <div class="section-header">
+      <h2>Made because everything else fails you.</h2>
+      <p>AirDrop stops at Apple. Cloud services are slow. WeTransfer compresses your files. USB cables suck. Poof fixes all of it.</p>
+    </div>
+
+    <div class="compare glass-card">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th class="hi">Poof</th>
+            <th>AirDrop</th>
+            <th>WeTransfer</th>
+            <th>Dropbox</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Mac ↔ PC transfer</td>
+            <td class="hi"><span class="yes">✓</span></td>
+            <td><span class="no">✗</span></td>
+            <td><span class="yes">✓</span></td>
+            <td><span class="yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>Wire-speed transfer</td>
+            <td class="hi"><span class="yes">✓</span></td>
+            <td><span class="yes">✓</span></td>
+            <td><span class="no">Slow (upload)</span></td>
+            <td><span class="no">Slow (sync)</span></td>
+          </tr>
+          <tr>
+            <td>No compression</td>
+            <td class="hi"><span class="yes">✓</span></td>
+            <td><span class="yes">✓</span></td>
+            <td><span class="no">✗</span></td>
+            <td><span class="yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>No cloud upload</td>
+            <td class="hi"><span class="yes">✓</span></td>
+            <td><span class="yes">✓</span></td>
+            <td><span class="no">✗</span></td>
+            <td><span class="no">✗</span></td>
+          </tr>
+          <tr>
+            <td>Works offline (LAN)</td>
+            <td class="hi"><span class="yes">✓</span></td>
+            <td><span class="yes">✓</span></td>
+            <td><span class="no">✗</span></td>
+            <td><span class="no">✗</span></td>
+          </tr>
+          <tr>
+            <td>No account required</td>
+            <td class="hi"><span class="yes">✓</span></td>
+            <td><span class="yes">✓</span></td>
+            <td><span class="no">✗</span></td>
+            <td><span class="no">✗</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="section features" id="features">
+    <div class="section-header">
+      <h2>Built for speed. Built for silence.</h2>
+      <p>No upload. No waiting. No compression. Your files travel from one device to another, live.</p>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature glass-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Wire-speed P2P</h3>
+        <p>Files travel at your network's actual speed. WebRTC data channels — no servers in between.</p>
+      </div>
+      <div class="feature glass-card">
+        <div class="feature-icon">🔒</div>
+        <h3>End-to-end encrypted</h3>
+        <p>DTLS-SRTP on every channel. We can't read what you send. Nobody can.</p>
+      </div>
+      <div class="feature glass-card">
+        <div class="feature-icon">📋</div>
+        <h3>Universal clipboard</h3>
+        <p>Copy on one device, paste on another. Text, images, links — in a fraction of a second.</p>
+      </div>
+      <div class="feature glass-card">
+        <div class="feature-icon">📡</div>
+        <h3>LAN auto-discovery</h3>
+        <p>Same Wi-Fi? Your devices find each other via Bonjour/mDNS. Zero setup.</p>
+      </div>
+      <div class="feature glass-card">
+        <div class="feature-icon">📸</div>
+        <h3>Instant screenshot</h3>
+        <p>Screenshot on Mac? Poof offers to send it to your iPhone right away.</p>
+      </div>
+      <div class="feature glass-card">
+        <div class="feature-icon">⌘</div>
+        <h3>Native shortcuts</h3>
+        <p>⌘⇧V to send clipboard. ⌘⇧A to open. From any app, on any OS.</p>
+      </div>
+      <div class="feature glass-card">
+        <div class="feature-icon">↻</div>
+        <h3>Resume on drop</h3>
+        <p>Wi-Fi cuts out mid-transfer? Poof picks up exactly where it stopped — no re-upload, no lost chunks.</p>
+      </div>
+      <div class="feature glass-card">
+        <div class="feature-icon">↗</div>
+        <h3>Share from anywhere (iOS)</h3>
+        <p>Poof lives inside the iOS share sheet. Send a Safari page, a Photos album, a Files folder — straight to your Mac or PC.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="section how">
+    <div class="section-header">
+      <h2>Three steps. That's it.</h2>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Install</h3>
+        <p>On your iPhone, Mac or PC. One app, same experience everywhere.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>Pair</h3>
+        <p>Scan a QR or type a 6-character code. That's all. No account.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>Send</h3>
+        <p>Drag & drop, or use the iOS share sheet. It appears on the other side, live.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="section pricing" id="pricing">
+    <div class="section-header">
+      <h2>Simple pricing. No lock-in.</h2>
+      <p>Standard is free forever. Premium unlocks everything. Devium is for developers who go further.</p>
+    </div>
+
+    <div class="pricing-toggle-wrap">
+      <div class="pricing-toggle" role="tablist">
+        <button class="toggle-btn active" data-period="monthly">Monthly</button>
+        <button class="toggle-btn" data-period="annual">Annual <span class="save">−35%</span></button>
+        <button class="toggle-btn" data-period="lifetime">Lifetime <span class="launch">Launch offer</span></button>
+      </div>
+    </div>
+
+    <div class="pricing-grid">
+      <!-- Standard -->
+      <div class="tier tier-standard glass-card">
+        <div class="tier-head">
+          <div class="tier-color" style="--tc:#3FBF7F"></div>
+          <h3>Standard</h3>
+          <p>Free forever.</p>
+        </div>
+        <div class="tier-price" data-monthly="0" data-annual="0" data-lifetime="0">
+          <span class="price">€0</span>
+          <span class="unit">/ forever</span>
+        </div>
+        <ul class="tier-feats">
+          <li>2 paired devices</li>
+          <li>Standard transfer speed</li>
+          <li>Unlimited transfers</li>
+          <li>All core features</li>
+          <li>End-to-end encryption</li>
+        </ul>
+        <a href="#downloads" class="tier-cta">Get Standard</a>
+      </div>
+
+      <!-- Premium -->
+      <div class="tier tier-premium glass-card popular">
+        <div class="popular-badge">Most popular</div>
+        <div class="tier-head">
+          <div class="tier-color" style="--tc:#5B8BFF"></div>
+          <h3>Premium</h3>
+          <p>For everyone who transfers a lot.</p>
+        </div>
+        <div class="tier-price" data-monthly="4.99" data-annual="39" data-lifetime="89">
+          <span class="price">€4.99</span>
+          <span class="unit">/ month</span>
+        </div>
+        <p class="ios-note">iOS in-app: €5.99/mo · <span>Save 1€ on poof.app</span></p>
+        <ul class="tier-feats">
+          <li><strong>Unlimited</strong> paired devices</li>
+          <li><strong>Wire-speed</strong> transfer unlocked</li>
+          <li>Priority support</li>
+          <li>All Standard features</li>
+          <li>7-day free trial</li>
+        </ul>
+        <a href="#downloads" class="tier-cta primary">Start free trial</a>
+      </div>
+
+      <!-- Devium -->
+      <div class="tier tier-devium glass-card">
+        <div class="soon-badge">Coming soon</div>
+        <div class="tier-head">
+          <div class="tier-color" style="--tc:#8B7EFF"></div>
+          <h3>Devium</h3>
+          <p>For developers who ship.</p>
+        </div>
+        <div class="tier-price" data-monthly="9.99" data-annual="79" data-lifetime="179">
+          <span class="price">€9.99</span>
+          <span class="unit">/ month</span>
+        </div>
+        <ul class="tier-feats">
+          <li><strong>Everything in Premium</strong></li>
+          <li>Offline P2P (no network)</li>
+          <li>CLI integration</li>
+          <li>Multi-device clipboard sync</li>
+          <li>Hot folders (auto-sync)</li>
+          <li>Secure SSH key injection</li>
+          <li>Multi-Drop (broadcast)</li>
+        </ul>
+        <a href="#notify" class="tier-cta">Notify me</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Downloads -->
+  <section class="section downloads" id="downloads">
+    <div class="section-header">
+      <h2>Get Poof.</h2>
+      <p>Free, open source, on every platform.</p>
+    </div>
+
+    <div class="download-grid">
+      <a class="dl-card glass-card featured" data-os="mac" href="#">
+        <div class="dl-icon">
+          <svg viewBox="0 0 24 24" width="42" height="42" fill="currentColor"><path d="M17.5 12.5c0-2.7 2.2-4 2.3-4.1-1.3-1.8-3.2-2.1-3.9-2.1-1.7-.2-3.2 1-4.1 1-.9 0-2.2-1-3.6-1-1.8 0-3.6 1.1-4.5 2.7-2 3.4-.5 8.5 1.4 11.3.9 1.4 2 2.9 3.5 2.8 1.4-.1 1.9-.9 3.6-.9s2.2.9 3.6.9c1.5 0 2.5-1.4 3.4-2.7 1.1-1.6 1.5-3.1 1.5-3.2-.1 0-3.2-1.2-3.2-4.7z"/><path d="M15.2 4.5c.8-.9 1.3-2.2 1.1-3.5-1.1.1-2.5.8-3.3 1.7-.7.8-1.4 2.1-1.2 3.3 1.2.1 2.5-.6 3.4-1.5z"/></svg>
+        </div>
+        <h3>macOS</h3>
+        <p>Universal · Intel + Apple Silicon · macOS 12+</p>
+        <span class="dl-btn">Download .dmg</span>
+        <span class="dl-size">≈ 12 MB</span>
+      </a>
+
+      <a class="dl-card glass-card" data-os="windows" href="#">
+        <div class="dl-icon">
+          <svg viewBox="0 0 24 24" width="42" height="42" fill="currentColor"><path d="M2 4.5 10.5 3v8.5H2V4.5zM11.5 3 22 1.5v10H11.5V3zM2 12.5h8.5V21L2 19.5v-7zM11.5 12.5H22V22.5l-10.5-1.5v-8.5z"/></svg>
+        </div>
+        <h3>Windows</h3>
+        <p>10 & 11 · x64</p>
+        <span class="dl-btn">Download .exe</span>
+        <span class="dl-size">≈ 14 MB</span>
+      </a>
+
+      <a class="dl-card glass-card" data-os="linux" href="#">
+        <div class="dl-icon">
+          <svg viewBox="0 0 24 24" width="42" height="42" fill="currentColor"><path d="M12.5 2c-2 0-3.5 1.7-3.5 3.8v3.5c-1.4 1.2-2.7 3.6-3.8 6.1-.7 1.6-1.4 3-1.4 4.4 0 1.6 1 3 2.9 3 .8 0 1.5-.4 2-.9.5 1 1.4 1.6 2.5 1.6h3c1.1 0 2-.6 2.5-1.6.5.5 1.2.9 2 .9 1.9 0 2.9-1.4 2.9-3 0-1.4-.7-2.8-1.4-4.4-1.1-2.5-2.4-4.9-3.8-6.1V5.8c0-2.1-1.5-3.8-3.9-3.8z"/></svg>
+        </div>
+        <h3>Linux</h3>
+        <p>AppImage · .deb · .rpm</p>
+        <span class="dl-btn">Download</span>
+        <span class="dl-size">≈ 16 MB</span>
+      </a>
+
+      <a class="dl-card glass-card small" data-os="ios" href="#">
+        <div class="dl-icon">
+          <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="3"/><circle cx="12" cy="18.5" r="0.8" fill="currentColor"/></svg>
+        </div>
+        <h3>iPhone & iPad</h3>
+        <p>Companion app · iOS 16+</p>
+        <span class="dl-btn ghost">App Store</span>
+      </a>
+    </div>
+
+    <p class="dl-note">
+      All builds also on <a href="https://github.com/poof-app/poof/releases" target="_blank" rel="noopener">GitHub Releases</a>.
+    </p>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section faq">
+    <div class="section-header">
+      <h2>Frequently asked.</h2>
+    </div>
+    <div class="faq-grid">
+      <details class="faq-item glass-card">
+        <summary>Is Poof really cloud-free?</summary>
+        <p>Yes. Files travel directly device-to-device via WebRTC data channels. Our servers only help two devices find each other during the initial pairing — after that, everything is peer-to-peer. On the same LAN, we don't even do that.</p>
+      </details>
+      <details class="faq-item glass-card">
+        <summary>Is Poof open source?</summary>
+        <p>Yes, MIT license. Core protocol, apps and desktop clients are on GitHub. You can audit the encryption, self-host the signaling server, or contribute.</p>
+      </details>
+      <details class="faq-item glass-card">
+        <summary>How is it different from AirDrop?</summary>
+        <p>AirDrop only works between Apple devices. Poof works across iPhone, Mac, Windows, Linux — any combination. Same simplicity, no Apple lock-in.</p>
+      </details>
+      <details class="faq-item glass-card">
+        <summary>Can I cancel anytime?</summary>
+        <p>Yes. Monthly and annual plans cancel in one click. Lifetime is a one-shot payment — you own it forever, no subscription.</p>
+      </details>
+      <details class="faq-item glass-card">
+        <summary>Why is the iOS price higher?</summary>
+        <p>Apple takes 30% commission on in-app purchases. On our website we pay ~3% and pass most of the difference to you. Same features, cheaper on desktop.</p>
+      </details>
+      <details class="faq-item glass-card">
+        <summary>When does Devium launch?</summary>
+        <p>Devium launches shortly after Premium. Drop your email in the "Notify me" button and you'll get early-bird pricing.</p>
+      </details>
+      <details class="faq-item glass-card">
+        <summary>What happens if my Wi-Fi drops during a transfer?</summary>
+        <p>Nothing bad. Poof tracks how much has been received. When the connection comes back, the sender asks "where were we?" and resumes from the exact chunk — no re-upload, no corruption.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-mark"></span>
+        <div>
+          <div class="brand-name">Poof</div>
+          <div class="footer-tag">Send anywhere.</div>
+        </div>
+      </div>
+      <div class="footer-cols">
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#downloads">Downloads</a>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <a href="mailto:hello@poof.app">Contact</a>
+          <a href="https://github.com/poof-app/poof" target="_blank" rel="noopener">GitHub</a>
+          <a href="#">Blog</a>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="./privacy.html">Privacy</a>
+          <a href="./terms.html">Terms</a>
+          <a href="#">Security</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-copy">
+      <span>© 2026 Poof · MIT License</span>
+      <span>Made with focus, not for scale.</span>
+    </div>
+  </footer>
+
+  <script src="./main.js" defer></script>
+</body>
+</html>

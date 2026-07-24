@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Poof</title>
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#8B7EFF" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="poof-bg" aria-hidden="true"></div>
+
+  <main class="screen" id="app">
+    <header class="header">
+      <h1 class="title">Poof</h1>
+      <div class="header-right">
+        <div class="status-badge" id="status" title="Connection status">
+          <span class="status-dot" id="status-dot"></span>
+          <span class="status-text" id="status-text">Connecting…</span>
+        </div>
+        <button class="glass-circle" id="btn-settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.36.15.68.37.93.65"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="split">
+      <aside class="sidebar">
+        <nav class="workspace-tabs" role="tablist" aria-label="Workspace">
+          <button class="ws-tab active" data-ws="standard" role="tab" aria-selected="true">
+            <span class="ws-dot" style="--tc:#3FBF7F"></span>
+            <span class="ws-label">Standard</span>
+          </button>
+          <button class="ws-tab" data-ws="premium" role="tab" aria-selected="false">
+            <span class="ws-dot" style="--tc:#5B8BFF"></span>
+            <span class="ws-label">Premium</span>
+            <svg class="ws-lock" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          </button>
+          <button class="ws-tab" data-ws="devium" role="tab" aria-selected="false">
+            <span class="ws-dot" style="--tc:#8B7EFF"></span>
+            <span class="ws-label">Devium</span>
+            <svg class="ws-lock" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          </button>
+        </nav>
+
+        <div class="sidebar-section">
+          <div class="sidebar-title">Devices</div>
+          <section class="devices" id="devices" aria-label="Paired devices">
+            <!-- rows injected by app.js -->
+          </section>
+        </div>
+
+        <button class="sidebar-add" id="btn-add-device" type="button">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          <span>Add device</span>
+        </button>
+      </aside>
+
+      <section class="main-area">
+        <section class="transfer-pill glass" id="transfer-pill" hidden>
+          <div class="transfer-pill-icon" id="transfer-pill-icon"></div>
+          <div class="transfer-pill-body">
+            <div class="transfer-pill-row">
+              <div class="transfer-pill-name" id="transfer-pill-name"></div>
+              <div class="transfer-pill-stats" id="transfer-pill-stats"></div>
+            </div>
+            <div class="transfer-pill-track">
+              <div class="transfer-pill-fill" id="transfer-pill-fill"></div>
+            </div>
+          </div>
+          <button class="transfer-pill-cancel" id="transfer-pill-cancel" title="Cancel" aria-label="Cancel">✕</button>
+        </section>
+
+        <section class="drop-zone glass" id="drop-zone" tabindex="0" role="button" aria-label="Drop file or photo">
+          <div class="drop-glyph">
+            <svg viewBox="0 0 40 60" width="42" height="58">
+              <rect x="2" y="2" width="36" height="55" rx="4" ry="4" fill="#FFFFFF" stroke="#00B7FF" stroke-width="2"/>
+              <rect x="8"  y="16" width="24" height="2.2" rx="1" fill="#00B7FF" opacity="0.85"/>
+              <rect x="8"  y="24" width="24" height="2.2" rx="1" fill="#00B7FF" opacity="0.85"/>
+              <rect x="8"  y="32" width="16" height="2.2" rx="1" fill="#00B7FF" opacity="0.85"/>
+            </svg>
+          </div>
+          <div class="drop-label">Drop file or photo</div>
+          <div class="drop-sub">or use the actions below</div>
+        </section>
+
+        <section class="clipboard-card" id="clipboard-card" hidden>
+          <div class="clipboard-icon" id="clipboard-icon"></div>
+          <div class="clipboard-body">
+            <div class="clipboard-label" id="clipboard-label">Clipboard</div>
+            <div class="clipboard-preview" id="clipboard-preview"></div>
+          </div>
+        </section>
+
+        <section class="bottom-actions">
+          <button class="action-square glass" id="btn-send-text">
+            <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 6h16M4 10h10M4 14h16M4 18h8"/>
+            </svg>
+            <span>Send Text</span>
+          </button>
+          <button class="action-square glass" id="btn-send-file">
+            <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <path d="M14 2v6h6"/>
+              <path d="M12 12v6M9 15l3-3 3 3"/>
+            </svg>
+            <span>Send File</span>
+          </button>
+          <button class="action-square glass" id="btn-screenshot">
+            <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="rgba(255,255,255,0.72)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 8V6a2 2 0 0 1 2-2h2"/>
+              <path d="M17 4h2a2 2 0 0 1 2 2v2"/>
+              <path d="M21 16v2a2 2 0 0 1-2 2h-2"/>
+              <path d="M7 20H5a2 2 0 0 1-2-2v-2"/>
+              <circle cx="12" cy="12" r="3.5"/>
+            </svg>
+            <span>Screenshot</span>
+          </button>
+        </section>
+
+        <section class="peers-grid" id="peers-grid" aria-label="Connected devices"></section>
+
+        <section class="clip-live" id="clip-live" aria-label="Universal clipboard live">
+          <div class="clip-live-header">
+            <span class="clip-live-title">Universal Clipboard</span>
+            <span class="clip-live-status" id="clip-live-status">Off</span>
+          </div>
+          <div class="clip-live-grid">
+            <div class="clip-live-card">
+              <div class="clip-live-label">This device</div>
+              <div class="clip-live-text" id="clip-live-local">—</div>
+              <div class="clip-live-time" id="clip-live-local-time"></div>
+            </div>
+            <div class="clip-live-card">
+              <div class="clip-live-label">From peer</div>
+              <div class="clip-live-text" id="clip-live-remote">—</div>
+              <div class="clip-live-time" id="clip-live-remote-time"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="activity" aria-label="Recent activity">
+          <div class="activity-header">
+            <span class="activity-title">Recent activity</span>
+            <button class="activity-clear" id="activity-clear" type="button" hidden>Clear</button>
+          </div>
+          <ul class="activity-list" id="activity-list"></ul>
+        </section>
+      </section>
+    </div>
+  </main>
+
+  <!-- Modals -->
+  <dialog id="modal-onboarding" class="poof-modal">
+    <h2>Welcome to Poof</h2>
+    <p>Give this device a name so your other devices can recognize it.</p>
+    <form class="join-row" id="onboarding-form" style="margin-top: 14px;">
+      <input type="text" id="onboarding-name" placeholder="MacBook Pro" maxlength="40"
+             autocomplete="off" spellcheck="false" />
+      <button class="poof-btn" type="submit">Continue</button>
+    </form>
+  </dialog>
+
+  <dialog id="modal-pair" class="poof-modal">
+    <h2>Add a device</h2>
+    <p>Scan this QR from the other device, or type the code manually.</p>
+    <div class="pair-qr" id="pair-qr"></div>
+    <div class="pair-code" id="pair-code">— — — — — —</div>
+    <div class="pair-fallback" id="pair-fallback" hidden>
+      Or open <span class="pair-fallback-url" id="pair-fallback-url"></span> on your phone
+    </div>
+    <div class="pair-expiry" id="pair-expiry"></div>
+    <button class="poof-btn" id="btn-new-code">Generate new code</button>
+
+    <hr />
+
+    <h3>Or type a code from another device</h3>
+    <form class="join-row" id="join-form">
+      <input type="text" id="join-code" placeholder="ABCDEF" maxlength="6"
+             autocapitalize="characters" autocomplete="off" spellcheck="false" />
+      <button class="poof-btn" type="submit">Pair</button>
+    </form>
+
+    <hr />
+
+    <h3>This device</h3>
+    <form class="join-row" id="rename-form">
+      <input type="text" id="rename-input" placeholder="Device name" maxlength="40"
+             autocomplete="off" spellcheck="false" />
+      <button class="poof-btn" type="submit">Rename</button>
+    </form>
+
+    <hr />
+
+    <h3>More</h3>
+    <div class="row-actions" style="justify-content: flex-start;">
+      <button class="poof-btn" id="btn-open-history" type="button">History</button>
+    </div>
+
+    <div class="row-actions">
+      <button class="poof-btn" data-close>Done</button>
+    </div>
+  </dialog>
+
+  <dialog id="modal-send-text" class="poof-modal">
+    <h2>Send text</h2>
+    <p>Sent as a text note to your selected device.</p>
+    <textarea id="send-text-area" class="send-text-area" placeholder="Type or paste text…" rows="7"></textarea>
+    <div class="row-actions">
+      <button class="poof-btn" data-close type="button">Cancel</button>
+      <button class="poof-btn primary" id="btn-send-text-confirm" type="button">Send</button>
+    </div>
+  </dialog>
+
+  <dialog id="modal-history" class="poof-modal">
+    <h2>History</h2>
+    <section class="uc-section">
+      <label class="uc-toggle" for="toggle-uc">
+        <div class="uc-text">
+          <div class="uc-title">Universal Clipboard</div>
+          <div class="uc-sub">Auto-sync your clipboard with the connected device.</div>
+        </div>
+        <input type="checkbox" id="toggle-uc" />
+        <span class="uc-slider" aria-hidden="true"></span>
+      </label>
+    </section>
+    <section>
+      <h3>Clipboard (last 3)</h3>
+      <ul id="history-clipboard"></ul>
+    </section>
+    <section>
+      <h3>Transfers</h3>
+      <ul id="history-transfers"></ul>
+    </section>
+    <div class="row-actions">
+      <button class="poof-btn" id="btn-force-clipboard">Force push clipboard</button>
+      <button class="poof-btn" data-close>Close</button>
+    </div>
+  </dialog>
+
+  <!-- Full-screen media preview (image / video / pdf) -->
+  <dialog id="modal-preview" class="preview-modal" aria-label="Received file">
+    <button class="preview-close" id="preview-close" aria-label="Close">✕</button>
+    <div class="preview-stage" id="preview-stage">
+      <img id="preview-img" alt="" hidden />
+      <video id="preview-video" controls playsinline hidden></video>
+      <embed id="preview-embed" hidden />
+    </div>
+    <div class="preview-bar">
+      <div class="preview-meta">
+        <div class="preview-name" id="preview-name"></div>
+        <div class="preview-size" id="preview-size"></div>
+      </div>
+      <div class="preview-actions">
+        <button class="poof-btn" id="preview-save">Save</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Live region -->
+  <div id="toast-region" class="toast-region" aria-live="polite"></div>
+
+  <!-- Hidden file input as a click fallback -->
+  <input type="file" id="file-input" multiple hidden />
+
+  <script>
+    // Signaling endpoint: same-origin when served by the signaling server (port 3000),
+    // otherwise fall back to the local dev server.
+    (function () {
+      var isServer = location.port === '3000';
+      if (!isServer) {
+        window.ATLAS_SIGNALING_URL = 'http://127.0.0.1:3000';
+      }
+    })();
+
+    // Workspace tabs — locked tiers show a toast until paid
+    (function () {
+      document.addEventListener('DOMContentLoaded', function () {
+        var tabs = document.querySelectorAll('.ws-tab');
+        tabs.forEach(function (tab) {
+          tab.addEventListener('click', function () {
+            var ws = tab.dataset.ws;
+            var isLocked = ws !== 'standard';
+            if (isLocked) {
+              var region = document.getElementById('toast-region');
+              if (region) {
+                var t = document.createElement('div');
+                t.className = 'toast';
+                t.textContent = ws === 'premium'
+                  ? 'Premium — coming soon. Get notified on poof.app'
+                  : 'Devium — for developers. Launching after Premium.';
+                region.appendChild(t);
+                setTimeout(function () { t.remove(); }, 3200);
+              }
+              return;
+            }
+            tabs.forEach(function (t) {
+              t.classList.toggle('active', t === tab);
+              t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+            });
+          });
+        });
+      });
+    })();
+  </script>
+  <script src="./vendor/socket.io.min.js"></script>
+  <script src="./vendor/qrcode.min.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

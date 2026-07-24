@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://poof.sfcrgg8hhm.workers.dev/sitemap.xml
