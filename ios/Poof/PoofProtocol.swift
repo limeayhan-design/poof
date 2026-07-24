@@ -15,6 +15,14 @@ nonisolated enum PoofMessageType: String, Codable {
     case fileCancel
     case fileResumeQuery
     case fileResumeAck
+    case fileDelivered
+    case fileSeen
+    case remoteListRequest
+    case remoteListResponse
+    case remoteGetRequest
+    case screenMirrorStart
+    case screenMirrorStop
+    case screenMirrorFrame
     case ping
     case pong
 }

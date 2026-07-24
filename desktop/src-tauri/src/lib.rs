@@ -154,6 +154,61 @@ fn open_file(path: String) -> Result<(), String> {
     Ok(())
 }
 
+// Remote Files scope — carved subfolder in the user's Documents so peers can
+// only see files the user deliberately dropped in "Poof". Root is created lazily.
+fn remote_root() -> Result<std::path::PathBuf, String> {
+    let root = dirs::document_dir()
+        .ok_or_else(|| "no document dir".to_string())?
+        .join("Poof");
+    std::fs::create_dir_all(&root).map_err(|e| e.to_string())?;
+    Ok(root)
+}
+
+fn resolve_scoped(rel: &str) -> Result<std::path::PathBuf, String> {
+    let root = remote_root()?;
+    let cleaned = rel.trim_start_matches('/');
+    let candidate = if cleaned.is_empty() { root.clone() } else { root.join(cleaned) };
+    let canon_root = root.canonicalize().unwrap_or(root);
+    let canon = candidate.canonicalize().unwrap_or(candidate);
+    if !canon.starts_with(&canon_root) { return Err("out of scope".into()); }
+    Ok(canon)
+}
+
+#[tauri::command]
+fn remote_list_dir(rel: String) -> Result<Vec<serde_json::Value>, String> {
+    let dir = resolve_scoped(&rel)?;
+    if !dir.is_dir() { return Ok(vec![]); }
+    let mut out = vec![];
+    for entry in std::fs::read_dir(&dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let meta = entry.metadata().map_err(|e| e.to_string())?;
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if name.starts_with('.') { continue; }
+        out.push(serde_json::json!({
+            "name": name,
+            "isDir": meta.is_dir(),
+            "size": if meta.is_dir() { 0 } else { meta.len() },
+        }));
+    }
+    out.sort_by(|a, b| {
+        let ad = a["isDir"].as_bool().unwrap_or(false);
+        let bd = b["isDir"].as_bool().unwrap_or(false);
+        if ad != bd { return bd.cmp(&ad); }
+        a["name"].as_str().unwrap_or("").to_lowercase()
+            .cmp(&b["name"].as_str().unwrap_or("").to_lowercase())
+    });
+    Ok(out)
+}
+
+#[tauri::command]
+fn remote_read_file(rel: String) -> Result<(String, Vec<u8>), String> {
+    let file = resolve_scoped(&rel)?;
+    if !file.is_file() { return Err("not a file".into()); }
+    let name = file.file_name().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+    let bytes = std::fs::read(&file).map_err(|e| e.to_string())?;
+    Ok((name, bytes))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -256,6 +311,8 @@ pub fn run() {
             show_window,
             save_to_downloads,
             open_file,
+            remote_list_dir,
+            remote_read_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

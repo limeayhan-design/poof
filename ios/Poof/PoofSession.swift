@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import UIKit
 
 // Runtime graph: Signaling ⇄ WebRTC ⇄ { Clipboard, File }.
 // Exposed as ObservableObject so SwiftUI reacts to online peers, active session, pair code, etc.
@@ -35,6 +36,7 @@ final class PoofSession: ObservableObject {
     @Published var incomingTransfer: TransferProgress? = nil
     @Published var toast: String? = nil
     @Published var receivedFiles: [ReceivedFile] = []
+    @Published var sentFiles: [PoofSentFile] = []
     @Published var universalClipboardEnabled: Bool = UserDefaults.standard.bool(forKey: "poof.universalClipboard") {
         didSet {
             UserDefaults.standard.set(universalClipboardEnabled, forKey: "poof.universalClipboard")
@@ -64,6 +66,8 @@ final class PoofSession: ObservableObject {
     public lazy var signaling = PoofSignalingClient(url: Self.signalingURL)
     public lazy var clipboard = PoofClipboardSync(manager: manager)
     public lazy var files = PoofFileTransfer(manager: manager)
+    public lazy var remote = PoofRemoteFiles(manager: manager)
+    public lazy var screenBroadcast = PoofScreenBroadcast(manager: manager)
     private let discovery = PoofDiscovery()
 
     private var started = false
@@ -96,6 +100,8 @@ final class PoofSession: ObservableObject {
         manager.onEnvelope = { [weak self] env in
             self?.clipboard.handle(env)
             self?.files.handle(env)
+            self?.remote.handle(env, fileTransfer: self?.files)
+            self?.screenBroadcast.handle(env)
         }
         manager.onBulkFrame = { [weak self] frame in
             self?.files.handle(frame: frame)
@@ -136,6 +142,27 @@ final class PoofSession: ObservableObject {
         }
         files.onCancelled = { [weak self] _, _ in
             Task { @MainActor in self?.incomingTransfer = nil }
+        }
+        files.onSendStarted = { [weak self] meta in
+            Task { @MainActor in
+                guard let self else { return }
+                let (peerId, peerName) = self.activePeerInfo()
+                let entry = PoofSentFile(
+                    id: meta.id, name: meta.name, size: meta.size,
+                    peerId: peerId, peerName: peerName, date: Date(),
+                    receipt: .sent, deliveredAt: nil, seenAt: nil
+                )
+                self.sentFiles.insert(entry, at: 0)
+                if self.sentFiles.count > 30 {
+                    self.sentFiles.removeLast(self.sentFiles.count - 30)
+                }
+            }
+        }
+        files.onDelivered = { [weak self] id in
+            Task { @MainActor in self?.updateReceipt(id: id, state: .delivered) }
+        }
+        files.onSeen = { [weak self] id in
+            Task { @MainActor in self?.updateReceipt(id: id, state: .seen) }
         }
 
         signaling.connect()
@@ -295,6 +322,58 @@ final class PoofSession: ObservableObject {
     }
 
     func pushClipboard() { clipboard.pushCurrent() }
+
+    /// Notify the sender that we opened the file preview — flips receipt to .seen.
+    func markSeen(_ id: UUID) { files.markSeen(id) }
+
+    private func activePeerInfo() -> (String, String) {
+        guard let id = activePeerId,
+              let peer = peers.peers.first(where: { $0.id == id }) else {
+            return ("", "Unknown")
+        }
+        return (peer.id, peer.name)
+    }
+
+    private func updateReceipt(id: UUID, state: PoofReceiptState) {
+        guard let idx = sentFiles.firstIndex(where: { $0.id == id }) else { return }
+        var entry = sentFiles[idx]
+        // Never downgrade (seen > delivered > sent)
+        let order: [PoofReceiptState] = [.sent, .delivered, .seen]
+        let currentRank = order.firstIndex(of: entry.receipt) ?? 0
+        let newRank = order.firstIndex(of: state) ?? 0
+        guard newRank >= currentRank else { return }
+        entry.receipt = state
+        if state == .delivered, entry.deliveredAt == nil { entry.deliveredAt = Date() }
+        if state == .seen, entry.seenAt == nil { entry.seenAt = Date() }
+        sentFiles[idx] = entry
+    }
+
+    /// Push whatever is on the pasteboard (text or image). Returns a human-readable
+    /// summary of what was pushed, or nil if the pasteboard was empty / unsupported.
+    /// Premium+ feature — image path writes a temp PNG and sends via file transfer.
+    @discardableResult
+    func pushClipboardRich() -> String? {
+        if let text = UIPasteboard.general.string, !text.isEmpty {
+            clipboard.pushCurrent()
+            return "Text sent"
+        }
+        if let image = UIPasteboard.general.image,
+           let png = image.pngData() {
+            let tempDir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("PoofOutgoing", isDirectory: true)
+            try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+            let name = "clipboard-\(Int(Date().timeIntervalSince1970)).png"
+            let dest = tempDir.appendingPathComponent(name)
+            do {
+                try png.write(to: dest)
+                sendFile(at: dest, mime: "image/png")
+                return "Image sent"
+            } catch {
+                return nil
+            }
+        }
+        return nil
+    }
 
     func clearHistory() {
         for entry in receivedFiles { try? FileManager.default.removeItem(at: entry.url) }

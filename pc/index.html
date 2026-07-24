@@ -65,6 +65,24 @@
       </aside>
 
       <section class="main-area">
+        <section class="premium-banner glass" id="premium-banner" hidden aria-label="Premium features">
+          <div class="premium-banner-head">
+            <div class="premium-banner-title">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#5B8BFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3l1.9 4.6L18 9l-3.5 3 1 4.8L12 14.8 8.5 16.8 9.5 12 6 9l4.1-1.4z"/>
+              </svg>
+              <span>Premium</span>
+            </div>
+            <span class="premium-banner-trial">7-day free trial</span>
+          </div>
+          <ul class="premium-banner-list">
+            <li><span class="premium-check">∞</span>Unlimited paired devices</li>
+            <li><span class="premium-check">⚡</span>Wire-speed transfer unlocked</li>
+            <li><span class="premium-check">✦</span>Priority support</li>
+            <li><span class="premium-check">✓</span>All Standard features</li>
+          </ul>
+        </section>
+
         <section class="transfer-pill glass" id="transfer-pill" hidden>
           <div class="transfer-pill-icon" id="transfer-pill-icon"></div>
           <div class="transfer-pill-body">
@@ -128,6 +146,28 @@
         </section>
 
         <section class="peers-grid" id="peers-grid" aria-label="Connected devices"></section>
+
+        <section class="premium-tiles" aria-label="Premium tools">
+          <button class="p-tile glass" id="btn-remote-files" type="button">
+            <div class="p-tile-icon">📁</div>
+            <div class="p-tile-body">
+              <div class="p-tile-title">Remote Files</div>
+              <div class="p-tile-sub">Browse peer</div>
+            </div>
+          </button>
+          <button class="p-tile glass" id="btn-screen-mirror" type="button">
+            <div class="p-tile-icon">🖥</div>
+            <div class="p-tile-body">
+              <div class="p-tile-title">Screen Mirror</div>
+              <div class="p-tile-sub" id="screen-mirror-sub">Cast to peer</div>
+            </div>
+          </button>
+        </section>
+
+        <section class="sent-badges-wrap" aria-label="Read receipts">
+          <div class="sent-badges-title" id="sent-badges-title" hidden>Receipts</div>
+          <div id="sent-badges"></div>
+        </section>
 
         <section class="clip-live" id="clip-live" aria-label="Universal clipboard live">
           <div class="clip-live-header">
@@ -266,6 +306,32 @@
     </div>
   </dialog>
 
+  <!-- Remote Files browser -->
+  <dialog id="modal-remote-files" class="poof-modal">
+    <h2>Remote Files</h2>
+    <div class="rf-breadcrumb" id="rf-breadcrumb">/</div>
+    <ul class="rf-list" id="rf-list"></ul>
+    <div class="rf-empty" id="rf-empty" hidden>No files at this path.</div>
+    <div class="row-actions">
+      <button class="poof-btn" id="rf-up" type="button">Up</button>
+      <button class="poof-btn" data-close>Close</button>
+    </div>
+  </dialog>
+
+  <!-- Screen Mirror viewer / broadcaster -->
+  <dialog id="modal-screen-mirror" class="preview-modal" aria-label="Screen mirror">
+    <button class="preview-close" id="sm-close" aria-label="Close">✕</button>
+    <div class="sm-stage" id="sm-stage">
+      <img id="sm-frame" alt="" hidden />
+      <div class="sm-empty" id="sm-empty">
+        <div class="sm-empty-title">Screen Mirror</div>
+        <div class="sm-empty-sub" id="sm-empty-sub">Waiting for peer or start your own broadcast</div>
+        <button class="poof-btn primary" id="sm-start" type="button">Broadcast this screen</button>
+        <button class="poof-btn" id="sm-stop" type="button" hidden>Stop broadcasting</button>
+      </div>
+    </div>
+  </dialog>
+
   <!-- Live region -->
   <div id="toast-region" class="toast-region" aria-live="polite"></div>
 
@@ -282,22 +348,20 @@
       }
     })();
 
-    // Workspace tabs — locked tiers show a toast until paid
+    // Workspace tabs — Standard + Premium are activatable, Devium still locked
     (function () {
       document.addEventListener('DOMContentLoaded', function () {
         var tabs = document.querySelectorAll('.ws-tab');
+        var banner = document.getElementById('premium-banner');
         tabs.forEach(function (tab) {
           tab.addEventListener('click', function () {
             var ws = tab.dataset.ws;
-            var isLocked = ws !== 'standard';
-            if (isLocked) {
+            if (ws === 'devium') {
               var region = document.getElementById('toast-region');
               if (region) {
                 var t = document.createElement('div');
                 t.className = 'toast';
-                t.textContent = ws === 'premium'
-                  ? 'Premium — coming soon. Get notified on poof.app'
-                  : 'Devium — for developers. Launching after Premium.';
+                t.textContent = 'Devium — for developers. Launching after Premium.';
                 region.appendChild(t);
                 setTimeout(function () { t.remove(); }, 3200);
               }
@@ -307,6 +371,8 @@
               t.classList.toggle('active', t === tab);
               t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
             });
+            if (banner) banner.hidden = (ws !== 'premium');
+            document.body.dataset.workspace = ws;
           });
         });
       });

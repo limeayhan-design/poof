@@ -10,6 +10,7 @@
 		3FA0000000000000000000A1 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 3FA0000000000000000000C1 /* WebRTC */; };
 		3FA0000000000000000000A2 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = 3FA0000000000000000000C2 /* SocketIO */; };
 		4A00000000000000000000EE /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4A00000000000000000000E7 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		4B00000000000000000000EE /* ScreenBroadcastExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4B00000000000000000000E7 /* ScreenBroadcastExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -20,6 +21,13 @@
 			remoteGlobalIDString = 4A00000000000000000000E1;
 			remoteInfo = ShareExtension;
 		};
+		4B00000000000000000000ED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3F35605D301249A4000FF498 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4B00000000000000000000E1;
+			remoteInfo = ScreenBroadcastExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -29,6 +37,7 @@
 			dstSubfolder = PlugIns;
 			files = (
 				4A00000000000000000000EE /* ShareExtension.appex in Embed Foundation Extensions */,
+				4B00000000000000000000EE /* ScreenBroadcastExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 		};
@@ -37,6 +46,7 @@
 /* Begin PBXFileReference section */
 		3F356065301249A4000FF498 /* Poof.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Poof.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A00000000000000000000E7 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		4B00000000000000000000E7 /* ScreenBroadcastExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ScreenBroadcastExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -63,6 +73,11 @@
 			path = ShareExtension;
 			sourceTree = "<group>";
 		};
+		4B00000000000000000000E2 /* ScreenBroadcastExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ScreenBroadcastExtension;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +93,11 @@
 			files = (
 			);
 		};
+		4B00000000000000000000E4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -86,6 +106,7 @@
 			children = (
 				3F356067301249A4000FF498 /* Poof */,
 				4A00000000000000000000E2 /* ShareExtension */,
+				4B00000000000000000000E2 /* ScreenBroadcastExtension */,
 				3F356066301249A4000FF498 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -95,6 +116,7 @@
 			children = (
 				3F356065301249A4000FF498 /* Poof.app */,
 				4A00000000000000000000E7 /* ShareExtension.appex */,
+				4B00000000000000000000E7 /* ScreenBroadcastExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -115,6 +137,7 @@
 			);
 			dependencies = (
 				4A00000000000000000000EC /* PBXTargetDependency */,
+				4B00000000000000000000EC /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				3F356067301249A4000FF498 /* Poof */,
@@ -146,6 +169,24 @@
 			productReference = 4A00000000000000000000E7 /* ShareExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		4B00000000000000000000E1 /* ScreenBroadcastExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4B00000000000000000000EB /* Build configuration list for PBXNativeTarget "ScreenBroadcastExtension" */;
+			buildPhases = (
+				4B00000000000000000000E3 /* Sources */,
+				4B00000000000000000000E4 /* Frameworks */,
+				4B00000000000000000000E5 /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				4B00000000000000000000E2 /* ScreenBroadcastExtension */,
+			);
+			name = ScreenBroadcastExtension;
+			productName = ScreenBroadcastExtension;
+			productReference = 4B00000000000000000000E7 /* ScreenBroadcastExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -160,6 +201,9 @@
 						CreatedOnToolsVersion = 27.0;
 					};
 					4A00000000000000000000E1 = {
+						CreatedOnToolsVersion = 27.0;
+					};
+					4B00000000000000000000E1 = {
 						CreatedOnToolsVersion = 27.0;
 					};
 				};
@@ -184,6 +228,7 @@
 			targets = (
 				3F356064301249A4000FF498 /* Poof */,
 				4A00000000000000000000E1 /* ShareExtension */,
+				4B00000000000000000000E1 /* ScreenBroadcastExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -195,6 +240,11 @@
 			);
 		};
 		4A00000000000000000000E5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		4B00000000000000000000E5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -212,6 +262,11 @@
 			files = (
 			);
 		};
+		4B00000000000000000000E3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -219,6 +274,11 @@
 			isa = PBXTargetDependency;
 			target = 4A00000000000000000000E1 /* ShareExtension */;
 			targetProxy = 4A00000000000000000000ED /* PBXContainerItemProxy */;
+		};
+		4B00000000000000000000EC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4B00000000000000000000E1 /* ScreenBroadcastExtension */;
+			targetProxy = 4B00000000000000000000ED /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -458,6 +518,62 @@
 			};
 			name = Release;
 		};
+		4B00000000000000000000E9 /* Debug configuration for PBXNativeTarget "ScreenBroadcastExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ScreenBroadcastExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HH3HK5PWM3;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "ScreenBroadcastExtension-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Poof.App.Poof.ScreenBroadcastExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		4B00000000000000000000EA /* Release configuration for PBXNativeTarget "ScreenBroadcastExtension" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ScreenBroadcastExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HH3HK5PWM3;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "ScreenBroadcastExtension-Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Poof.App.Poof.ScreenBroadcastExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -482,6 +598,14 @@
 			buildConfigurations = (
 				4A00000000000000000000E9 /* Debug configuration for PBXNativeTarget "ShareExtension" */,
 				4A00000000000000000000EA /* Release configuration for PBXNativeTarget "ShareExtension" */,
+			);
+			defaultConfigurationName = Release;
+		};
+		4B00000000000000000000EB /* Build configuration list for PBXNativeTarget "ScreenBroadcastExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4B00000000000000000000E9 /* Debug configuration for PBXNativeTarget "ScreenBroadcastExtension" */,
+				4B00000000000000000000EA /* Release configuration for PBXNativeTarget "ScreenBroadcastExtension" */,
 			);
 			defaultConfigurationName = Release;
 		};

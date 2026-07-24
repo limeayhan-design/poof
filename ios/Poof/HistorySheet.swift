@@ -16,6 +16,8 @@ struct HistorySheet: View {
                     VStack(alignment: .leading, spacing: 24) {
                         universalClipboardSection
                         Divider().background(PoofTheme.glassStroke)
+                        sentFilesSection
+                        Divider().background(PoofTheme.glassStroke)
                         receivedFilesSection
                         Divider().background(PoofTheme.glassStroke)
                         clipboardSection
@@ -74,6 +76,74 @@ struct HistorySheet: View {
         }
         .padding(12)
         .glassCard()
+    }
+
+    // MARK: - Sent files (read receipts)
+
+    private var sentFilesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Sent files")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(PoofTheme.textPrimary)
+                Spacer()
+                if !session.sentFiles.isEmpty {
+                    Text("\(session.sentFiles.count)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(PoofTheme.textTertiary)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Capsule().fill(Color.white.opacity(0.08)))
+                }
+            }
+
+            if session.sentFiles.isEmpty {
+                Text("No files sent yet.")
+                    .font(.system(size: 13))
+                    .foregroundColor(PoofTheme.textTertiary)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .glassCard()
+            } else {
+                ForEach(session.sentFiles) { file in
+                    HStack(spacing: 12) {
+                        Image(systemName: iconFor(name: file.name))
+                            .font(.system(size: 16))
+                            .foregroundColor(PoofTheme.accent2)
+                            .frame(width: 34, height: 34)
+                            .background(Circle().fill(Color.white.opacity(0.08)))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(file.name)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(PoofTheme.textPrimary)
+                                .lineLimit(1)
+                            Text("to \(file.peerName) · \(formatBytes(file.size)) · \(relativeDate(file.date))")
+                                .font(.system(size: 11))
+                                .foregroundColor(PoofTheme.textTertiary)
+                                .lineLimit(1)
+                        }
+                        Spacer()
+                        receiptBadge(file.receipt)
+                    }
+                    .padding(12)
+                    .glassCard()
+                }
+            }
+        }
+    }
+
+    private func receiptBadge(_ state: PoofReceiptState) -> some View {
+        let color: Color = state == .seen ? PoofTheme.green
+            : state == .delivered ? PoofTheme.accent
+            : PoofTheme.textTertiary
+        return HStack(spacing: 4) {
+            Image(systemName: state.icon)
+                .font(.system(size: 10, weight: .bold))
+            Text(state.label)
+                .font(.system(size: 11, weight: .semibold))
+        }
+        .foregroundColor(color)
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(Capsule().fill(color.opacity(0.15)))
     }
 
     // MARK: - Received files

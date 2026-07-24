@@ -20,6 +20,9 @@ import { DeviceIdentity }   from './src/device-identity.js';
 import { PairedPeerStore }  from './src/paired-peer-store.js';
 import { LanDiscovery }     from './src/lan-discovery.js';
 import { NativeFeatures }   from './src/native-features.js';
+import { RemoteFiles }      from './src/remote-files.js';
+import { ScreenMirror }     from './src/screen-mirror.js';
+import { currentTier, tierLimits, PoofTier } from './src/tier.js';
 import { TransferTracker, formatBytes, formatSpeed, formatEta }
                             from './src/transfer-tracker.js';
 
@@ -40,6 +43,150 @@ const transfer     = new FileTransfer(manager);
 const tracker      = new TransferTracker(transfer);
 const store        = new PairedPeerStore();
 const lan          = new LanDiscovery();
+const remoteFiles  = new RemoteFiles(manager, transfer);
+const screenMirror = new ScreenMirror(manager);
+
+// Read receipts state — mirrors iOS PoofSentFile.
+const sentFiles = new Map();  // transferId -> { name, size, receipt, deliveredAt, seenAt }
+transfer.addEventListener('outgoing-meta', (e) => {
+  const { id, name, size } = e.detail;
+  sentFiles.set(id, { name, size, receipt: 'sent', deliveredAt: null, seenAt: null });
+  renderSentBadges();
+});
+transfer.addEventListener('delivered', (e) => {
+  const s = sentFiles.get(e.detail.id);
+  if (s && s.receipt === 'sent') { s.receipt = 'delivered'; s.deliveredAt = Date.now(); renderSentBadges(); }
+});
+transfer.addEventListener('seen', (e) => {
+  const s = sentFiles.get(e.detail.id);
+  if (s) { s.receipt = 'seen'; s.seenAt = Date.now(); renderSentBadges(); }
+});
+
+function renderSentBadges() {
+  const el = document.querySelector('#sent-badges');
+  if (!el) return;
+  const rows = [...sentFiles.entries()].slice(-6).reverse();
+  el.innerHTML = rows.map(([id, s]) => {
+    const icon = s.receipt === 'seen' ? '👁' : s.receipt === 'delivered' ? '✓✓' : '✓';
+    const color = s.receipt === 'seen' ? '#4ade80' : s.receipt === 'delivered' ? '#60a5fa' : '#94a3b8';
+    return `<div class="sent-row" style="color:${color}">${icon} <span>${escapeHtml(s.name)}</span></div>`;
+  }).join('');
+}
+
+// Auto-mark seen when the completed file is opened via openPath.
+const _origOpenPath = NativeFeatures.openPath.bind(NativeFeatures);
+NativeFeatures.openPath = async function (path) {
+  const ok = await _origOpenPath(path);
+  return ok;
+};
+
+// -------- Remote Files browser -------------------------------------
+const rfModal = document.querySelector('#modal-remote-files');
+const rfList = document.querySelector('#rf-list');
+const rfEmpty = document.querySelector('#rf-empty');
+const rfBreadcrumb = document.querySelector('#rf-breadcrumb');
+const rfUpBtn = document.querySelector('#rf-up');
+const btnRemoteFiles = document.querySelector('#btn-remote-files');
+let rfCurrentPath = '';
+let rfPendingReq = null;
+
+function rfRender(entries, path) {
+  rfCurrentPath = path;
+  rfBreadcrumb.textContent = '/' + (path || '');
+  rfList.innerHTML = '';
+  if (!entries.length) { rfEmpty.hidden = false; return; }
+  rfEmpty.hidden = true;
+  entries.forEach((e) => {
+    const li = document.createElement('li');
+    li.className = 'rf-row';
+    li.innerHTML = `
+      <span class="rf-icon">${e.isDir ? '📁' : '📄'}</span>
+      <span class="rf-name">${escapeHtml(e.name)}</span>
+      <span class="rf-size">${e.isDir ? '' : formatBytes(e.size)}</span>
+    `;
+    li.onclick = () => {
+      const next = path ? `${path}/${e.name}` : e.name;
+      if (e.isDir) rfBrowse(next);
+      else { remoteFiles.requestGet(next); toast(`Pulling ${e.name}…`); }
+    };
+    rfList.appendChild(li);
+  });
+}
+
+function rfBrowse(path) {
+  rfPendingReq = remoteFiles.requestList(path);
+  rfList.innerHTML = '<li class="rf-loading">Loading…</li>';
+  rfEmpty.hidden = true;
+  rfBreadcrumb.textContent = '/' + (path || '');
+}
+
+remoteFiles.addEventListener('list', (e) => {
+  const { requestId, path, entries } = e.detail;
+  if (requestId !== rfPendingReq && rfPendingReq !== null) return;
+  rfRender(entries, path);
+});
+
+rfUpBtn?.addEventListener('click', () => {
+  if (!rfCurrentPath) return;
+  const parts = rfCurrentPath.split('/'); parts.pop();
+  rfBrowse(parts.join('/'));
+});
+
+btnRemoteFiles?.addEventListener('click', () => {
+  if (!manager.isReady) { toast('Not connected'); return; }
+  rfCurrentPath = '';
+  rfBrowse('');
+  rfModal.showModal();
+});
+
+// -------- Screen Mirror --------------------------------------------
+const smModal = document.querySelector('#modal-screen-mirror');
+const smFrame = document.querySelector('#sm-frame');
+const smEmpty = document.querySelector('#sm-empty');
+const smStart = document.querySelector('#sm-start');
+const smStop = document.querySelector('#sm-stop');
+const smClose = document.querySelector('#sm-close');
+const smSub = document.querySelector('#screen-mirror-sub');
+const btnScreenMirror = document.querySelector('#btn-screen-mirror');
+
+screenMirror.addEventListener('receiving-start', () => {
+  smEmpty.hidden = true;
+  smFrame.hidden = false;
+  if (!smModal.open) smModal.showModal();
+  smSub.textContent = 'Live from peer';
+});
+screenMirror.addEventListener('receiving-stop', () => {
+  smFrame.hidden = true;
+  smEmpty.hidden = false;
+  smSub.textContent = 'Cast to peer';
+});
+screenMirror.addEventListener('frame', (e) => {
+  smFrame.src = e.detail.dataUrl;
+});
+screenMirror.addEventListener('broadcasting-start', () => {
+  smStart.hidden = true;
+  smStop.hidden = false;
+  smSub.textContent = 'Live · you are broadcasting';
+});
+screenMirror.addEventListener('broadcasting-stop', () => {
+  smStart.hidden = false;
+  smStop.hidden = true;
+  smSub.textContent = 'Cast to peer';
+});
+
+btnScreenMirror?.addEventListener('click', () => {
+  if (!manager.isReady) { toast('Not connected'); return; }
+  smModal.showModal();
+});
+smStart?.addEventListener('click', async () => {
+  try { await screenMirror.startBroadcast(); }
+  catch (err) { toast(`Broadcast failed: ${err.message || err}`); }
+});
+smStop?.addEventListener('click', () => screenMirror.stopBroadcast());
+smClose?.addEventListener('click', () => {
+  if (screenMirror.isBroadcasting) screenMirror.stopBroadcast();
+  smModal.close();
+});
 
 // ------------------------------------------------------------------
 // DOM refs
@@ -508,6 +655,11 @@ signaling.addEventListener('peer-unpaired', ({ detail }) => {
 
 signaling.addEventListener('pair-succeeded', ({ detail }) => {
   const { peer } = detail;
+  const limits = tierLimits();
+  if (!store.has(peer.deviceId) && store.peers.length >= limits.maxDevices) {
+    toast(`Free tier limited to ${limits.maxDevices} devices — upgrade for unlimited.`);
+    return;
+  }
   store.upsert(peer);
   signaling.subscribe([peer.deviceId]);
   state.online.add(peer.deviceId);
@@ -620,6 +772,11 @@ async function drainPendingSend() {
 }
 
 async function sendWithRetry(file, targetId, maxAttempts) {
+  const limits = tierLimits();
+  if (file.size > limits.maxTransferBytes) {
+    toast(`${file.name} is ${formatBytes(file.size)} — Free tier caps at 2 GB. Upgrade to Premium.`);
+    throw new Error('tier-limit-exceeded');
+  }
   let lastErr;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {

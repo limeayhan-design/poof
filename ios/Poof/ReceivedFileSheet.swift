@@ -50,6 +50,11 @@ struct ReceivedFileSheet: View {
             .sheet(isPresented: $showShare) {
                 ShareSheet(items: [url])
             }
+            .onAppear {
+                if let entry = session.receivedFiles.first(where: { $0.url == url }) {
+                    session.markSeen(entry.id)
+                }
+            }
         }
     }
 

@@ -8,11 +8,19 @@ import AVFoundation
 struct PairingSheet: View {
     @EnvironmentObject var session: PoofSession
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(PoofTier.storageKey) private var tierRaw: String = PoofTier.free.rawValue
     @State private var joinCode: String = ""
     @State private var nameField: String = PoofDeviceIdentity.name
     @State private var signalingField: String = PoofSession.signalingURL.absoluteString
     @State private var showScanner = false
     @State private var showHistory = false
+    @State private var showPricing = false
+
+    private var tier: PoofTier { PoofTier(rawValue: tierRaw) ?? .free }
+    private var atPairingLimit: Bool {
+        guard let max = tier.maxPairedDevices else { return false }
+        return session.peers.peers.count >= max
+    }
 
     var body: some View {
         NavigationStack {
@@ -20,10 +28,15 @@ struct PairingSheet: View {
                 PoofBackground()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
-                        addDeviceBlock
-                        Divider().background(PoofTheme.glassStroke)
-                        joinBlock
-                        Divider().background(PoofTheme.glassStroke)
+                        if atPairingLimit {
+                            pairingLimitBanner
+                            Divider().background(PoofTheme.glassStroke)
+                        } else {
+                            addDeviceBlock
+                            Divider().background(PoofTheme.glassStroke)
+                            joinBlock
+                            Divider().background(PoofTheme.glassStroke)
+                        }
                         renameBlock
                         Divider().background(PoofTheme.glassStroke)
                         signalingBlock
@@ -56,6 +69,10 @@ struct PairingSheet: View {
             .sheet(isPresented: $showScanner) {
                 QRScannerView { code in
                     showScanner = false
+                    guard !atPairingLimit else {
+                        session.pairError = "Device limit reached. Upgrade or unpair one."
+                        return
+                    }
                     let extracted = Self.extractPairCode(from: code)
                     session.joinWithCode(extracted)
                 }
@@ -63,10 +80,64 @@ struct PairingSheet: View {
             .sheet(isPresented: $showHistory) {
                 HistorySheet().environmentObject(session)
             }
+            .sheet(isPresented: $showPricing) {
+                PricingSheet()
+            }
             .onAppear {
-                if session.pairCode == nil { session.requestPairCode() }
+                if session.pairCode == nil && !atPairingLimit { session.requestPairCode() }
             }
         }
+    }
+
+    // MARK: - Limit banner
+
+    private var pairingLimitBanner: some View {
+        let count = session.peers.peers.count
+        let limit = tier.maxPairedDevices ?? count
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(tier.accent)
+                Text("Device limit reached")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(PoofTheme.textPrimary)
+                Spacer()
+                Text("\(count)/\(limit)")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(tier.accent)
+            }
+            Text("\(tier.displayName) allows \(tier.pairingLimitLabel). Upgrade for unlimited pairings, or unpair a device from the home screen.")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(PoofTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Button { showPricing = true } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("Upgrade")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background(
+                    Capsule().fill(
+                        LinearGradient(
+                            colors: [tier.accent, tier.glow],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    )
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(radius: PoofTheme.radiusMd)
+        .overlay(
+            RoundedRectangle(cornerRadius: PoofTheme.radiusMd)
+                .strokeBorder(tier.accent.opacity(0.4), lineWidth: 1)
+        )
     }
 
     // MARK: - Add a device (QR + code + fallback)

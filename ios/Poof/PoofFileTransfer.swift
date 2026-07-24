@@ -23,6 +23,9 @@ final class PoofFileTransfer {
     var onProgress: ((_ id: UUID, _ bytes: UInt64, _ total: UInt64) -> Void)?
     var onCompleted: ((_ meta: Meta, _ fileURL: URL) -> Void)?
     var onCancelled: ((_ id: UUID, _ reason: String) -> Void)?
+    var onDelivered: ((_ id: UUID) -> Void)?
+    var onSeen: ((_ id: UUID) -> Void)?
+    var onSendStarted: ((_ meta: Meta) -> Void)?
 
     private weak var manager: PoofWebRTCManager?
     private let backpressureLimit: UInt64 = 1_048_576
@@ -59,6 +62,7 @@ final class PoofFileTransfer {
         let state = OutgoingState(meta: meta, sourceURL: url)
         outgoing[meta.id] = state
         defer { outgoing.removeValue(forKey: meta.id) }
+        onSendStarted?(meta)
 
         manager?.sendEnvelope(PoofEnvelope(
             type: .fileMeta,
@@ -174,6 +178,10 @@ final class PoofFileTransfer {
             respondResume(env)
         case .fileResumeAck:
             fulfilResume(env)
+        case .fileDelivered:
+            if let id = UUID(uuidString: env.id) { onDelivered?(id) }
+        case .fileSeen:
+            if let id = UUID(uuidString: env.id) { onSeen?(id) }
         default: break
         }
     }
@@ -195,7 +203,24 @@ final class PoofFileTransfer {
             try? state.handle.close()
             incoming.removeValue(forKey: frame.transferId)
             onCompleted?(state.meta, state.url)
+            manager?.sendEnvelope(PoofEnvelope(
+                type: .fileDelivered,
+                id: frame.transferId.uuidString,
+                ts: Date().timeIntervalSince1970,
+                force: false,
+                payload: [:]
+            ))
         }
+    }
+
+    func markSeen(_ id: UUID) {
+        manager?.sendEnvelope(PoofEnvelope(
+            type: .fileSeen,
+            id: id.uuidString,
+            ts: Date().timeIntervalSince1970,
+            force: false,
+            payload: [:]
+        ))
     }
 
     private func openIncoming(_ env: PoofEnvelope) {

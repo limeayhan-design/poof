@@ -449,6 +449,62 @@ body::after {
   font-weight: 500;
 }
 
+/* ─────────── Premium banner ─────────── */
+.premium-banner {
+  padding: 14px 16px;
+  border: 1px solid rgba(91, 139, 255, 0.35);
+  box-shadow: 0 0 0 1px rgba(91, 139, 255, 0.08) inset,
+              0 8px 32px rgba(91, 139, 255, 0.12);
+}
+.premium-banner-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.premium-banner-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text);
+}
+.premium-banner-trial {
+  font-size: 11px;
+  font-weight: 600;
+  color: #5B8BFF;
+  background: rgba(91, 139, 255, 0.14);
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+.premium-banner-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.premium-banner-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.premium-check {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: rgba(91, 139, 255, 0.16);
+  color: #5B8BFF;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 /* ─────────── Transfer pill ─────────── */
 .transfer-pill {
   display: flex;
@@ -1405,3 +1461,68 @@ body::after {
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: var(--r-full); }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* ─────────── Premium tiles (Remote Files / Screen Mirror) ─────────── */
+.premium-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 14px 0 6px;
+}
+.p-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  border: none;
+  color: inherit;
+}
+.p-tile:hover { filter: brightness(1.05); }
+.p-tile-icon { font-size: 22px; width: 32px; text-align: center; }
+.p-tile-title { font-size: 13px; font-weight: 600; }
+.p-tile-sub { font-size: 11px; opacity: 0.6; }
+
+/* ─────────── Sent receipts badges ─────────── */
+.sent-badges-wrap { margin-top: 12px; }
+.sent-badges-title { font-size: 11px; font-weight: 600; opacity: 0.6; margin-bottom: 6px; }
+.sent-row { font-size: 12px; padding: 4px 0; display: flex; gap: 8px; }
+.sent-row span { flex: 1; opacity: 0.85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ─────────── Remote Files browser ─────────── */
+.rf-breadcrumb {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 8px;
+  margin: 10px 0;
+}
+.rf-list { list-style: none; padding: 0; margin: 0; max-height: 320px; overflow-y: auto; }
+.rf-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer;
+}
+.rf-row:hover { background: rgba(255,255,255,0.06); }
+.rf-icon { font-size: 18px; width: 22px; }
+.rf-name { flex: 1; font-size: 13px; }
+.rf-size { font-size: 11px; opacity: 0.6; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.rf-empty, .rf-loading { text-align: center; padding: 30px 0; opacity: 0.6; font-size: 13px; }
+
+/* ─────────── Screen Mirror viewer ─────────── */
+.sm-stage {
+  position: relative;
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  background: #000;
+}
+#sm-frame { max-width: 100%; max-height: 100%; object-fit: contain; }
+.sm-empty {
+  color: #fff;
+  text-align: center;
+  display: flex; flex-direction: column; gap: 14px; align-items: center;
+}
+.sm-empty-title { font-size: 22px; font-weight: 600; }
+.sm-empty-sub { font-size: 13px; opacity: 0.6; margin-bottom: 8px; }

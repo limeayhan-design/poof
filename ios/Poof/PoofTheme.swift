@@ -34,6 +34,10 @@ enum PoofTheme {
 // MARK: - Background
 
 struct PoofBackground: View {
+    @AppStorage(PoofTier.storageKey) private var tierRaw: String = PoofTier.free.rawValue
+
+    private var tier: PoofTier { PoofTier(rawValue: tierRaw) ?? .free }
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -41,15 +45,16 @@ struct PoofBackground: View {
                 startPoint: .top, endPoint: .bottom
             )
             RadialGradient(
-                colors: [PoofTheme.accent.opacity(0.20), .clear],
-                center: .init(x: 0.2, y: 0.12), startRadius: 20, endRadius: 340
+                colors: [tier.accent.opacity(0.22), .clear],
+                center: .init(x: 0.2, y: 0.12), startRadius: 20, endRadius: 360
             )
             RadialGradient(
-                colors: [PoofTheme.accent2.opacity(0.16), .clear],
-                center: .init(x: 0.85, y: 0.85), startRadius: 20, endRadius: 360
+                colors: [tier.glow.opacity(0.18), .clear],
+                center: .init(x: 0.85, y: 0.85), startRadius: 20, endRadius: 380
             )
         }
         .ignoresSafeArea()
+        .animation(.easeInOut(duration: 0.6), value: tierRaw)
     }
 }
 

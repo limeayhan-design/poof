@@ -267,7 +267,19 @@ export class FileTransfer extends EventTarget {
         this._resumeWaiters.delete(env.id);
         waiter.resolve(Number(env.payload?.nextIndex ?? 0));
       }
+    } else if (env.type === PoofMessageType.FileDelivered) {
+      this.dispatchEvent(new CustomEvent('delivered', { detail: { id: env.id } }));
+    } else if (env.type === PoofMessageType.FileSeen) {
+      this.dispatchEvent(new CustomEvent('seen', { detail: { id: env.id } }));
     }
+  }
+
+  markSeen(transferId) {
+    this.manager.sendEnvelope({
+      type: PoofMessageType.FileSeen,
+      id: transferId,
+      payload: {},
+    });
   }
 
   _handleFrame(frame) {
@@ -323,6 +335,11 @@ export class FileTransfer extends EventTarget {
       }
       const blob = new Blob(state.parts, { type: state.meta.mime });
       this.incoming.delete(frame.transferId);
+      this.manager.sendEnvelope({
+        type: PoofMessageType.FileDelivered,
+        id: frame.transferId,
+        payload: {},
+      });
       this.dispatchEvent(new CustomEvent('completed', {
         detail: { id: frame.transferId, meta: state.meta, blob },
       }));
