@@ -1,6 +1,6 @@
 [package]
 name = "poof"
-version = "0.1.2"
+version = "0.1.3"
 description = "Poof desktop shell"
 authors = ["Poof"]
 edition = "2021"
