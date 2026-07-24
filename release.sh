@@ -64,8 +64,14 @@ git tag -a "$TAG" -m "Poof $TAG — $NOTES"
 git push origin main
 git push origin "$TAG"
 
-echo "==> Rebuilding + signing (~3 min)"
+echo "==> Rebuilding + signing + notarizing (~5-8 min)"
 cd "$DESKTOP_DIR"
+
+# Apple notarization credentials — retrieved from macOS Keychain, never in git.
+export APPLE_ID="urasim38@icloud.com"
+export APPLE_TEAM_ID="V7ZG4CJTB7"
+export APPLE_PASSWORD=$(security find-generic-password -a "limeayhan-design" -s "poof-apple-app-password" -w)
+
 TAURI_SIGNING_PRIVATE_KEY_PATH="$KEY_PATH" \
 TAURI_SIGNING_PRIVATE_KEY_PASSWORD="" \
   npx tauri build
