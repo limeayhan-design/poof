@@ -127,15 +127,45 @@ const pushTokens = new Map();
 // APNS provider (lazy init, activé seulement si env vars présentes)
 // -------------------------------------------------------------
 
-const APNS_TOPIC = process.env.APNS_TOPIC || 'com.atlas.link.poof';
+const APNS_TOPIC = process.env.APNS_TOPIC || 'com.Poof.App.Poof';
 const APNS_PRODUCTION = process.env.APNS_PRODUCTION === 'true';
 
+/**
+ * Charge la clé .p8 depuis :
+ *   1) Secret File `/etc/secrets/AuthKey.p8` (recommandé — préserve les newlines)
+ *   2) sinon env var `APNS_KEY_P8` (fallback — casse souvent sur Render car
+ *      les env vars UI n'aiment pas les contenus multi-lignes)
+ * Retourne null si aucune source valide, avec un log clair pour debug.
+ */
+function loadApnsKey() {
+  try {
+    const { readFileSync, existsSync } = require('node:fs');
+    const secretPath = '/etc/secrets/AuthKey.p8';
+    if (existsSync(secretPath)) {
+      const content = readFileSync(secretPath, 'utf-8');
+      console.log(`[Poof] APNS key loaded from secret file (${content.length} chars)`);
+      return content;
+    }
+  } catch (err) {
+    console.error('[Poof] APNS key secret file read error:', err.message);
+  }
+  const envKey = process.env.APNS_KEY_P8;
+  if (envKey) {
+    // Beaucoup d'UIs échappent les vrais \n en littéraux — on décode.
+    const decoded = envKey.replace(/\\n/g, '\n');
+    console.log(`[Poof] APNS key loaded from env var (${decoded.length} chars)`);
+    return decoded;
+  }
+  return null;
+}
+
 let apnProvider = null;
-if (process.env.APNS_KEY_P8 && process.env.APNS_KEY_ID && process.env.APNS_TEAM_ID) {
+const apnsKey = loadApnsKey();
+if (apnsKey && process.env.APNS_KEY_ID && process.env.APNS_TEAM_ID) {
   try {
     apnProvider = new apn.Provider({
       token: {
-        key: process.env.APNS_KEY_P8,
+        key: apnsKey,
         keyId: process.env.APNS_KEY_ID,
         teamId: process.env.APNS_TEAM_ID,
       },
@@ -143,10 +173,11 @@ if (process.env.APNS_KEY_P8 && process.env.APNS_KEY_ID && process.env.APNS_TEAM_
     });
     console.log(`[Poof] APNS provider ready (production=${APNS_PRODUCTION}, topic=${APNS_TOPIC})`);
   } catch (err) {
-    console.error('[Poof] APNS provider init failed:', err);
+    console.error('[Poof] APNS provider init failed:', err.message);
+    console.error('[Poof] Full error:', err);
   }
 } else {
-  console.warn('[Poof] APNS env vars missing (APNS_KEY_P8, APNS_KEY_ID, APNS_TEAM_ID) — push disabled');
+  console.warn(`[Poof] APNS disabled — hasKey=${!!apnsKey} hasKeyID=${!!process.env.APNS_KEY_ID} hasTeamID=${!!process.env.APNS_TEAM_ID}`);
 }
 
 async function sendApnsPush(toDeviceId, title, body) {
