@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
+import { readFileSync, existsSync } from 'node:fs';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
@@ -139,7 +140,6 @@ const APNS_PRODUCTION = process.env.APNS_PRODUCTION === 'true';
  */
 function loadApnsKey() {
   try {
-    const { readFileSync, existsSync } = require('node:fs');
     const secretPath = '/etc/secrets/AuthKey.p8';
     if (existsSync(secretPath)) {
       const content = readFileSync(secretPath, 'utf-8');
