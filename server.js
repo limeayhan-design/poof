@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
 import { Server } from 'socket.io';
 import { Bonjour } from 'bonjour-service';
+import apn from '@parse/node-apn';
 
 const PORT = Number(process.env.PORT) || 3000;
 const PAIR_CODE_TTL_MS = 5 * 60 * 1000;
@@ -95,7 +96,8 @@ const io = new Server(httpServer, {
   maxHttpBufferSize: 4096,
   pingInterval: 25000,
   pingTimeout: 20000,
-  transports: ['websocket'],
+  transports: ['websocket', 'polling'],
+  allowUpgrades: true,
 });
 
 // -------------------------------------------------------------
@@ -111,6 +113,70 @@ const devices = new Map();
 
 /** socketId → deviceId (reverse lookup) */
 const socketToDevice = new Map();
+
+/**
+ * deviceId → { token: string, platform: string }
+ * APNS device tokens registered by devices. Survive socket disconnects — le
+ * whole point est de pouvoir push un device dont l'app est fermée.
+ * Persistant en mémoire seulement (perdu au restart du server, mais l'app
+ * re-register au prochain launch).
+ */
+const pushTokens = new Map();
+
+// -------------------------------------------------------------
+// APNS provider (lazy init, activé seulement si env vars présentes)
+// -------------------------------------------------------------
+
+const APNS_TOPIC = process.env.APNS_TOPIC || 'com.atlas.link.poof';
+const APNS_PRODUCTION = process.env.APNS_PRODUCTION === 'true';
+
+let apnProvider = null;
+if (process.env.APNS_KEY_P8 && process.env.APNS_KEY_ID && process.env.APNS_TEAM_ID) {
+  try {
+    apnProvider = new apn.Provider({
+      token: {
+        key: process.env.APNS_KEY_P8,
+        keyId: process.env.APNS_KEY_ID,
+        teamId: process.env.APNS_TEAM_ID,
+      },
+      production: APNS_PRODUCTION,
+    });
+    console.log(`[Poof] APNS provider ready (production=${APNS_PRODUCTION}, topic=${APNS_TOPIC})`);
+  } catch (err) {
+    console.error('[Poof] APNS provider init failed:', err);
+  }
+} else {
+  console.warn('[Poof] APNS env vars missing (APNS_KEY_P8, APNS_KEY_ID, APNS_TEAM_ID) — push disabled');
+}
+
+async function sendApnsPush(toDeviceId, title, body) {
+  if (!apnProvider) return;
+  const entry = pushTokens.get(toDeviceId);
+  if (!entry) {
+    console.log(`[Poof] push-alert: no token for ${toDeviceId}`);
+    return;
+  }
+  const notif = new apn.Notification();
+  notif.alert = { title, body };
+  notif.sound = 'default';
+  notif.topic = APNS_TOPIC;
+  notif.pushType = 'alert';
+  try {
+    const result = await apnProvider.send(notif, entry.token);
+    console.log(`[Poof] APNS sent to ${toDeviceId} → sent=${result.sent.length} failed=${result.failed.length}`);
+    if (result.failed.length > 0) {
+      for (const f of result.failed) {
+        console.error(`[Poof] APNS failure: ${f.status} ${JSON.stringify(f.response)}`);
+        // Token invalide → on le retire pour ne pas re-tenter.
+        if (f.status === '410' || f.response?.reason === 'Unregistered') {
+          pushTokens.delete(toDeviceId);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[Poof] APNS send error:', err);
+  }
+}
 
 /**
  * code → { socketId, deviceInfo, timer }
@@ -329,6 +395,29 @@ io.on('connection', (socket) => {
   });
 
   socket.on('session-leave', () => leaveSession(socket, 'left'));
+
+  // -------------------------------------------------------------
+  // Push notifications (APNS relay)
+  // -------------------------------------------------------------
+  //
+  // Le token APNS est envoyé par l'app au launch. On le mappe au deviceId
+  // courant. Persisté au-delà de la déconnexion socket pour pouvoir push
+  // un device dont l'app est fermée (c'est tout l'intérêt).
+  socket.on('register-push-token', ({ token, platform } = {}) => {
+    const me = socketToDevice.get(socket.id);
+    if (!me || typeof token !== 'string' || !token) return;
+    pushTokens.set(me, { token, platform: String(platform || 'ios') });
+    console.log(`[Poof] push-token registered for ${me} (${platform})`);
+  });
+
+  // Émis par le receiver quand il ouvre un fichier Track — le sender peut
+  // être app-fermée, donc WebRTC event ne suffit pas. On relaie via APNS.
+  socket.on('push-alert', ({ toDeviceId, title, body } = {}) => {
+    if (typeof toDeviceId !== 'string' || !toDeviceId) return;
+    const safeTitle = String(title || 'File opened').slice(0, 100);
+    const safeBody = String(body || '').slice(0, 200);
+    sendApnsPush(toDeviceId, safeTitle, safeBody);
+  });
 
   // Notify a paired peer that this device removed it from its paired list.
   // Also drops mutual presence subscription so ghost "online" events stop.

@@ -12,6 +12,7 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
+    "@parse/node-apn": "^6.4.0",
     "bonjour-service": "^1.4.3",
     "socket.io": "^4.8.1"
   },
