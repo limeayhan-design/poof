@@ -188,10 +188,13 @@ if (apnsKey && process.env.APNS_KEY_ID && process.env.APNS_TEAM_ID) {
 }
 
 async function sendApnsPush(toDeviceId, title, body) {
-  if (!apnProvider) return;
+  if (!apnProvider) {
+    console.warn(`[Poof] sendApnsPush ABORT — no APNS provider`);
+    return;
+  }
   const entry = pushTokens.get(toDeviceId);
   if (!entry) {
-    console.log(`[Poof] push-alert: no token for ${toDeviceId}`);
+    console.log(`[Poof] push-alert: no token for ${toDeviceId} — known tokens: [${Array.from(pushTokens.keys()).join(', ') || 'NONE'}]`);
     return;
   }
   const notif = new apn.Notification();
@@ -199,6 +202,7 @@ async function sendApnsPush(toDeviceId, title, body) {
   notif.sound = 'default';
   notif.topic = APNS_TOPIC;
   notif.pushType = 'alert';
+  console.log(`[Poof] APNS → sending to ${toDeviceId} token=${entry.token.slice(0, 12)}… topic=${APNS_TOPIC} title="${title}"`);
   try {
     const result = await apnProvider.send(notif, entry.token);
     console.log(`[Poof] APNS sent to ${toDeviceId} → sent=${result.sent.length} failed=${result.failed.length}`);
@@ -309,9 +313,16 @@ function cancelPairingCode(socket) {
 // -------------------------------------------------------------
 
 io.on('connection', (socket) => {
+  console.log(`[Poof] socket connected ${socket.id} (transport=${socket.conn.transport.name})`);
+  socket.on('disconnect', (reason) => {
+    const me = socketToDevice.get(socket.id);
+    console.log(`[Poof] socket disconnected ${socket.id} device=${me || '?'} reason=${reason}`);
+  });
+
   // ---- 1. Identity + subscription -----------------------------------------
   socket.on('hello', (payload = {}, ack) => {
     const { deviceId, name, platform, knownPeerIds = [] } = payload;
+    console.log(`[Poof] hello from socket=${socket.id} deviceId=${deviceId} name=${name} platform=${platform}`);
     if (typeof deviceId !== 'string' || !deviceId) {
       return ack?.({ ok: false, error: 'invalid-deviceId' });
     }
@@ -443,15 +454,27 @@ io.on('connection', (socket) => {
   // un device dont l'app est fermée (c'est tout l'intérêt).
   socket.on('register-push-token', ({ token, platform } = {}) => {
     const me = socketToDevice.get(socket.id);
-    if (!me || typeof token !== 'string' || !token) return;
+    console.log(`[Poof] register-push-token received — socket=${socket.id} me=${me || 'NO-HELLO'} tokenLen=${token?.length || 0} platform=${platform}`);
+    if (!me) {
+      console.warn(`[Poof] register-push-token DROPPED — no hello for socket ${socket.id}`);
+      return;
+    }
+    if (typeof token !== 'string' || !token) {
+      console.warn(`[Poof] register-push-token DROPPED — invalid token for ${me}`);
+      return;
+    }
     pushTokens.set(me, { token, platform: String(platform || 'ios') });
-    console.log(`[Poof] push-token registered for ${me} (${platform})`);
+    console.log(`[Poof] push-token registered for ${me} (${platform}) — total tokens=${pushTokens.size}`);
   });
 
   // Émis par le receiver quand il ouvre un fichier Track — le sender peut
   // être app-fermée, donc WebRTC event ne suffit pas. On relaie via APNS.
   socket.on('push-alert', ({ toDeviceId, title, body } = {}) => {
-    if (typeof toDeviceId !== 'string' || !toDeviceId) return;
+    console.log(`[Poof] push-alert received — from=${socketToDevice.get(socket.id)} to=${toDeviceId} title="${title}"`);
+    if (typeof toDeviceId !== 'string' || !toDeviceId) {
+      console.warn(`[Poof] push-alert DROPPED — invalid toDeviceId`);
+      return;
+    }
     const safeTitle = String(title || 'File opened').slice(0, 100);
     const safeBody = String(body || '').slice(0, 200);
     sendApnsPush(toDeviceId, safeTitle, safeBody);
