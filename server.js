@@ -132,18 +132,25 @@ const APNS_TOPIC = process.env.APNS_TOPIC || 'com.Poof.App.Poof';
 const APNS_PRODUCTION = process.env.APNS_PRODUCTION === 'true';
 
 /**
- * Charge la clé .p8 depuis :
- *   1) Secret File `/etc/secrets/AuthKey.p8` (recommandé — préserve les newlines)
- *   2) sinon env var `APNS_KEY_P8` (fallback — casse souvent sur Render car
- *      les env vars UI n'aiment pas les contenus multi-lignes)
- * Retourne null si aucune source valide, avec un log clair pour debug.
+ * Charge la clé .p8 depuis, dans l'ordre :
+ *   1) env var `APNS_KEY_P8_B64` (base64 — le plus safe, une seule ligne)
+ *   2) Secret File `/etc/secrets/AuthKey.p8`
+ *   3) env var `APNS_KEY_P8` (raw, avec \\n littéraux décodés)
  */
 function loadApnsKey() {
+  const b64 = process.env.APNS_KEY_P8_B64;
+  if (b64) {
+    const decoded = Buffer.from(b64, 'base64').toString('utf-8');
+    console.log(`[Poof] APNS key loaded from env var (base64, ${decoded.length} chars)`);
+    console.log(`[Poof] APNS key preview: ${JSON.stringify(decoded.slice(0, 60))}`);
+    return decoded;
+  }
   try {
     const secretPath = '/etc/secrets/AuthKey.p8';
     if (existsSync(secretPath)) {
       const content = readFileSync(secretPath, 'utf-8');
       console.log(`[Poof] APNS key loaded from secret file (${content.length} chars)`);
+      console.log(`[Poof] APNS key preview: ${JSON.stringify(content.slice(0, 60))}`);
       return content;
     }
   } catch (err) {
@@ -151,9 +158,9 @@ function loadApnsKey() {
   }
   const envKey = process.env.APNS_KEY_P8;
   if (envKey) {
-    // Beaucoup d'UIs échappent les vrais \n en littéraux — on décode.
     const decoded = envKey.replace(/\\n/g, '\n');
-    console.log(`[Poof] APNS key loaded from env var (${decoded.length} chars)`);
+    console.log(`[Poof] APNS key loaded from env var (raw, ${decoded.length} chars)`);
+    console.log(`[Poof] APNS key preview: ${JSON.stringify(decoded.slice(0, 60))}`);
     return decoded;
   }
   return null;
