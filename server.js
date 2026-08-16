@@ -88,6 +88,50 @@ const httpServer = createServer(async (req, res) => {
     res.end(JSON.stringify({ url }));
     return;
   }
+  // GET /debug/apns-test?token=<hex>&title=<t>&body=<b>
+  // Envoie un push APNS direct au token fourni, sans passer par socket.io.
+  // Permet de valider le pipeline APNS bout en bout avec un simple curl.
+  if (req.url?.startsWith('/debug/apns-test')) {
+    const u = new URL(req.url, 'http://x');
+    const token = u.searchParams.get('token');
+    const title = u.searchParams.get('title') || 'Poof test';
+    const body = u.searchParams.get('body') || 'Hello from server';
+    if (!token) {
+      res.writeHead(400, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'missing token param' }));
+      return;
+    }
+    if (!apnProvider) {
+      res.writeHead(500, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'APNS provider not initialized' }));
+      return;
+    }
+    console.log(`[Poof] /debug/apns-test → token=${token.slice(0, 12)}… title="${title}"`);
+    const notif = new apn.Notification();
+    notif.alert = { title, body };
+    notif.sound = 'default';
+    notif.topic = APNS_TOPIC;
+    notif.pushType = 'alert';
+    try {
+      const result = await apnProvider.send(notif, token);
+      const payload = {
+        ok: result.sent.length > 0,
+        sent: result.sent.length,
+        failed: result.failed.length,
+        failures: result.failed.map((f) => ({ status: f.status, response: f.response })),
+        topic: APNS_TOPIC,
+        production: APNS_PRODUCTION,
+      };
+      console.log(`[Poof] /debug/apns-test result:`, JSON.stringify(payload));
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify(payload, null, 2));
+    } catch (err) {
+      console.error(`[Poof] /debug/apns-test error:`, err);
+      res.writeHead(500, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: err.message }));
+    }
+    return;
+  }
   if (await serveStatic(req, res)) return;
   res.writeHead(404); res.end();
 });
