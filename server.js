@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { readFile, stat } from 'node:fs/promises';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { networkInterfaces } from 'node:os';
@@ -15,6 +15,23 @@ const SESSION_TTL_MS = 5 * 60 * 1000;
 const PAIR_CODE_LEN = 6;
 const PAIR_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const MAX_PEERS = 2;
+
+// Support chat — persistance JSON simple. threads = { deviceId: { name, messages: [{id, text, isAdmin, ts}] } }
+const MESSAGES_FILE = process.env.MESSAGES_FILE || '/tmp/poof-messages.json';
+const ADMIN_TOKEN = process.env.SUPPORT_ADMIN_TOKEN || 'poof-admin-change-me';
+let supportThreads = {};
+try { supportThreads = JSON.parse(readFileSync(MESSAGES_FILE, 'utf8')); } catch {}
+function saveSupportThreads() {
+  try { writeFileSync(MESSAGES_FILE, JSON.stringify(supportThreads)); } catch {}
+}
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', c => { data += c; if (data.length > 1e5) { reject(new Error('too-big')); req.destroy(); } });
+    req.on('end', () => { try { resolve(JSON.parse(data)); } catch { resolve({}); } });
+    req.on('error', reject);
+  });
+}
 
 const STATIC_ROOT = resolve(fileURLToPath(new URL('./pc/', import.meta.url)));
 const MIME = {
@@ -67,7 +84,64 @@ async function serveStatic(req, res) {
 }
 
 const httpServer = createServer(async (req, res) => {
+  // Support chat — POST routes (avant le guard GET-only).
+  if (req.method === 'POST' && req.url === '/messages') {
+    try {
+      const { deviceId, name, text } = await readJsonBody(req);
+      if (!deviceId || !text) { res.writeHead(400); res.end(); return; }
+      if (!supportThreads[deviceId]) supportThreads[deviceId] = { name: name || '', messages: [] };
+      if (name) supportThreads[deviceId].name = name;
+      supportThreads[deviceId].messages.push({
+        id: randomBytes(8).toString('hex'),
+        text: String(text).slice(0, 2000),
+        isAdmin: false,
+        ts: Date.now() / 1000
+      });
+      saveSupportThreads();
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } catch { res.writeHead(500); res.end(); }
+    return;
+  }
+  if (req.method === 'POST' && req.url?.startsWith('/admin/reply')) {
+    const u = new URL(req.url, 'http://x');
+    if (u.searchParams.get('token') !== ADMIN_TOKEN) { res.writeHead(401); res.end(); return; }
+    try {
+      const { deviceId, text } = await readJsonBody(req);
+      if (!deviceId || !text) { res.writeHead(400); res.end(); return; }
+      if (!supportThreads[deviceId]) supportThreads[deviceId] = { name: '', messages: [] };
+      supportThreads[deviceId].messages.push({
+        id: randomBytes(8).toString('hex'),
+        text: String(text).slice(0, 2000),
+        isAdmin: true,
+        ts: Date.now() / 1000
+      });
+      saveSupportThreads();
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    } catch { res.writeHead(500); res.end(); }
+    return;
+  }
+
   if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
+
+  // Support chat — GET routes.
+  if (req.url?.startsWith('/messages')) {
+    const u = new URL(req.url, 'http://x');
+    const deviceId = u.searchParams.get('deviceId') || '';
+    const thread = supportThreads[deviceId] || { name: '', messages: [] };
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify(thread));
+    return;
+  }
+  if (req.url?.startsWith('/admin/threads')) {
+    const u = new URL(req.url, 'http://x');
+    if (u.searchParams.get('token') !== ADMIN_TOKEN) { res.writeHead(401); res.end(); return; }
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify(supportThreads));
+    return;
+  }
+
   if (req.url === '/health') {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({
