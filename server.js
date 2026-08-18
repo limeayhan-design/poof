@@ -30,6 +30,21 @@ function saveSupportThreads() {
 const relayFiles = new Map(); // fileId -> { data: Buffer, meta, targetId, uploadedAt }
 const RELAY_TTL_MS = 60 * 60 * 1000;
 const RELAY_MAX_BYTES = 50 * 1024 * 1024;
+
+// Avatar & displayName sync entre devices d'un même compte iCloud.
+// Clé = appleUserId (fourni par Sign in with Apple, stable et cross-device).
+// Value = { avatar: base64 JPEG, displayName, ts }. Cap 500 KB par avatar
+// (image compressée côté client). TTL 30 jours — les données sont réémises
+// dès qu'un device push, donc pas de risque de perte silencieuse.
+const accountAvatars = new Map(); // appleUserId -> { avatar, displayName, ts }
+const ACCOUNT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const ACCOUNT_AVATAR_MAX_BYTES = 500 * 1024;
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, entry] of accountAvatars) {
+    if (now - entry.ts > ACCOUNT_TTL_MS) accountAvatars.delete(id);
+  }
+}, 60 * 60 * 1000);
 setInterval(() => {
   const now = Date.now();
   for (const [id, entry] of relayFiles) {
@@ -517,8 +532,8 @@ io.on('connection', (socket) => {
 
   // ---- 1. Identity + subscription -----------------------------------------
   socket.on('hello', (payload = {}, ack) => {
-    const { deviceId, name, platform, knownPeerIds = [] } = payload;
-    console.log(`[Poof] hello from socket=${socket.id} deviceId=${deviceId} name=${name} platform=${platform}`);
+    const { deviceId, name, platform, knownPeerIds = [], appleUserId = null } = payload;
+    console.log(`[Poof] hello from socket=${socket.id} deviceId=${deviceId} name=${name} platform=${platform} account=${appleUserId ? 'yes' : 'no'}`);
     if (typeof deviceId !== 'string' || !deviceId) {
       return ack?.({ ok: false, error: 'invalid-deviceId' });
     }
@@ -536,12 +551,57 @@ io.on('connection', (socket) => {
       name: String(name || 'Unknown'),
       platform: String(platform || 'unknown'),
       knownPeerIds: new Set(knownPeerIds),
+      appleUserId: typeof appleUserId === 'string' && appleUserId ? appleUserId : null,
     });
     socketToDevice.set(socket.id, deviceId);
 
     const online = knownPeerIds.filter(isOnline);
     ack?.({ ok: true, onlinePeers: online });
     broadcastPresence(deviceId, true);
+
+    // Si le serveur a déjà un avatar pour ce compte iCloud (poussé par un
+    // autre device du même user), on le pousse immédiatement à ce socket
+    // pour que le nuage se remplisse sans attendre.
+    if (appleUserId && accountAvatars.has(appleUserId)) {
+      const entry = accountAvatars.get(appleUserId);
+      socket.emit('account-avatar-sync', {
+        avatar: entry.avatar,
+        displayName: entry.displayName,
+      });
+    }
+
+    // Livraison de fichiers relay en attente. Un sender peut uploader alors
+    // que le target n'est pas encore connecté (spin-down Render, latence,
+    // app juste lancée) — dans ce cas le serveur a le fichier dans son Map
+    // mais n'a pas pu émettre `relay-file-ready`. On rejoue tous les
+    // fichiers en attente pour ce deviceId dès qu'il fait hello.
+    for (const [fileId, entry] of relayFiles) {
+      if (entry.targetId !== deviceId) continue;
+      console.log(`[Poof] flush pending relay file ${fileId} → ${deviceId}`);
+      socket.emit('relay-file-ready', { fileId, meta: entry.meta });
+    }
+  });
+
+  // Un device (Mac Me Card, iPhone PhotosPicker) pousse son avatar + name.
+  // On stocke par appleUserId et on relaie à tous les autres sockets déjà
+  // connectés avec le même appleUserId — devices du même compte iCloud.
+  socket.on('account-avatar-push', (payload = {}) => {
+    const { appleUserId, avatar, displayName } = payload;
+    if (typeof appleUserId !== 'string' || !appleUserId) return;
+    if (typeof avatar === 'string' && avatar.length > ACCOUNT_AVATAR_MAX_BYTES) return;
+    accountAvatars.set(appleUserId, {
+      avatar: typeof avatar === 'string' ? avatar : null,
+      displayName: typeof displayName === 'string' ? displayName : null,
+      ts: Date.now(),
+    });
+    for (const [otherDeviceId, d] of devices) {
+      if (d.appleUserId !== appleUserId) continue;
+      if (d.socketId === socket.id) continue;
+      io.to(d.socketId).emit('account-avatar-sync', {
+        avatar,
+        displayName,
+      });
+    }
   });
 
   socket.on('subscribe', ({ deviceIds = [] } = {}) => {
