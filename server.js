@@ -24,6 +24,18 @@ try { supportThreads = JSON.parse(readFileSync(MESSAGES_FILE, 'utf8')); } catch 
 function saveSupportThreads() {
   try { writeFileSync(MESSAGES_FILE, JSON.stringify(supportThreads)); } catch {}
 }
+
+// Relay files — fallback fiable pour les fichiers en cas où WebRTC foire.
+// En RAM (Map), TTL 1h, cap 50 MB par fichier. Cleanup 5min.
+const relayFiles = new Map(); // fileId -> { data: Buffer, meta, targetId, uploadedAt }
+const RELAY_TTL_MS = 60 * 60 * 1000;
+const RELAY_MAX_BYTES = 50 * 1024 * 1024;
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, entry] of relayFiles) {
+    if (now - entry.uploadedAt > RELAY_TTL_MS) relayFiles.delete(id);
+  }
+}, 5 * 60 * 1000);
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     let data = '';
@@ -103,6 +115,49 @@ const httpServer = createServer(async (req, res) => {
     } catch { res.writeHead(500); res.end(); }
     return;
   }
+  // Relay upload — sender POST le binaire brut du fichier, headers portent
+  // la meta (nom, mime, target device, secure/track/compressed flags).
+  // Serveur push un event socket.io `relay-file-ready` au target device.
+  if (req.method === 'POST' && req.url === '/relay/upload') {
+    const chunks = [];
+    let total = 0;
+    let aborted = false;
+    req.on('data', c => {
+      total += c.length;
+      if (total > RELAY_MAX_BYTES) {
+        aborted = true;
+        req.destroy();
+        return;
+      }
+      chunks.push(c);
+    });
+    req.on('end', () => {
+      if (aborted) { res.writeHead(413); res.end(); return; }
+      const data = Buffer.concat(chunks);
+      const fileId = randomBytes(12).toString('hex');
+      const targetId = req.headers['x-target-device-id'] || '';
+      const meta = {
+        name: req.headers['x-file-name'] || 'file',
+        mime: req.headers['x-mime-type'] || 'application/octet-stream',
+        size: data.length,
+        senderDeviceId: req.headers['x-sender-device-id'] || '',
+        secureConfig: req.headers['x-secure-config'] ? JSON.parse(req.headers['x-secure-config']) : null,
+        trackConfig: req.headers['x-track-config'] ? JSON.parse(req.headers['x-track-config']) : null,
+        compressed: req.headers['x-compressed'] === 'true',
+        transferId: req.headers['x-transfer-id'] || randomBytes(8).toString('hex')
+      };
+      relayFiles.set(fileId, { data, meta, targetId, uploadedAt: Date.now() });
+      // Push socket.io au target si connecté (sinon file en attente TTL 1h).
+      const target = devices.get(targetId);
+      if (target) {
+        io.to(target.socketId).emit('relay-file-ready', { fileId, meta });
+      }
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, fileId }));
+    });
+    req.on('error', () => { res.writeHead(500); res.end(); });
+    return;
+  }
   if (req.method === 'POST' && req.url?.startsWith('/admin/reply')) {
     const u = new URL(req.url, 'http://x');
     if (u.searchParams.get('token') !== ADMIN_TOKEN) { res.writeHead(401); res.end(); return; }
@@ -124,6 +179,29 @@ const httpServer = createServer(async (req, res) => {
   }
 
   if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
+
+  // Relay download — receiver GET pour récupérer le fichier binaire brut.
+  // One-shot : le fichier est supprimé de la RAM serveur après lecture
+  // pour éviter d'accumuler + garantir la promesse "vanish".
+  if (req.url?.startsWith('/relay/')) {
+    const fileId = req.url.slice('/relay/'.length).split('?')[0];
+    const entry = relayFiles.get(fileId);
+    if (!entry) { res.writeHead(404); res.end(); return; }
+    res.writeHead(200, {
+      'content-type': entry.meta.mime,
+      'content-length': entry.data.length,
+      'x-file-name': entry.meta.name,
+      'x-file-size': String(entry.meta.size),
+      'x-sender-device-id': entry.meta.senderDeviceId,
+      'x-secure-config': entry.meta.secureConfig ? JSON.stringify(entry.meta.secureConfig) : '',
+      'x-track-config': entry.meta.trackConfig ? JSON.stringify(entry.meta.trackConfig) : '',
+      'x-compressed': entry.meta.compressed ? 'true' : 'false',
+      'x-transfer-id': entry.meta.transferId
+    });
+    res.end(entry.data);
+    relayFiles.delete(fileId);
+    return;
+  }
 
   // Support chat — GET routes.
   if (req.url?.startsWith('/messages')) {
