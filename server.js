@@ -45,6 +45,25 @@ setInterval(() => {
     if (now - entry.ts > ACCOUNT_TTL_MS) accountAvatars.delete(id);
   }
 }, 60 * 60 * 1000);
+
+// Clipboard relay — permet d'envoyer un texte à un device même si son app
+// Poof n'est pas ouverte. On stocke par targetDeviceId, on push via
+// socket.io si connecté ET via APNS pour que le receiver iOS voie une notif
+// avec bouton « 📋 Coller » sans avoir à ouvrir l'app. TTL 1h — le texte
+// est éphémère par design (jamais persisté sur disque). Cap 100 KB par
+// entrée (largement au-dessus d'un clipboard humain classique).
+const pendingClipboards = new Map(); // targetDeviceId -> [{ id, text, senderDeviceId, senderName, ts }]
+const CLIPBOARD_TTL_MS = 60 * 60 * 1000;
+const CLIPBOARD_MAX_BYTES = 100 * 1024;
+const CLIPBOARD_MAX_PENDING_PER_DEVICE = 20;
+setInterval(() => {
+  const now = Date.now();
+  for (const [deviceId, queue] of pendingClipboards) {
+    const kept = queue.filter(e => now - e.ts <= CLIPBOARD_TTL_MS);
+    if (kept.length === 0) pendingClipboards.delete(deviceId);
+    else if (kept.length !== queue.length) pendingClipboards.set(deviceId, kept);
+  }
+}, 5 * 60 * 1000);
 setInterval(() => {
   const now = Date.now();
   for (const [id, entry] of relayFiles) {
@@ -171,6 +190,50 @@ const httpServer = createServer(async (req, res) => {
       res.end(JSON.stringify({ ok: true, fileId }));
     });
     req.on('error', () => { res.writeHead(500); res.end(); });
+    return;
+  }
+  // Relay clipboard — sender POST { targetDeviceId, senderDeviceId, senderName, text }.
+  // Serveur queue + push event socket.io ET push APNS avec bouton d'action « Coller ».
+  if (req.method === 'POST' && req.url === '/relay/clipboard') {
+    try {
+      const body = await readJsonBody(req);
+      const { targetDeviceId, senderDeviceId, senderName, text } = body || {};
+      if (typeof targetDeviceId !== 'string' || !targetDeviceId ||
+          typeof text !== 'string' || !text) {
+        res.writeHead(400); res.end(JSON.stringify({ ok: false, error: 'invalid-body' }));
+        return;
+      }
+      if (Buffer.byteLength(text, 'utf8') > CLIPBOARD_MAX_BYTES) {
+        res.writeHead(413); res.end(JSON.stringify({ ok: false, error: 'too-big' }));
+        return;
+      }
+      const entry = {
+        id: randomBytes(8).toString('hex'),
+        text,
+        senderDeviceId: String(senderDeviceId || ''),
+        senderName: String(senderName || 'Device'),
+        ts: Date.now(),
+      };
+      const queue = pendingClipboards.get(targetDeviceId) || [];
+      queue.push(entry);
+      if (queue.length > CLIPBOARD_MAX_PENDING_PER_DEVICE) {
+        queue.splice(0, queue.length - CLIPBOARD_MAX_PENDING_PER_DEVICE);
+      }
+      pendingClipboards.set(targetDeviceId, queue);
+
+      // Push socket.io si le target est actuellement connecté (app ouverte).
+      const target = devices.get(targetDeviceId);
+      if (target) {
+        io.to(target.socketId).emit('clipboard-inbound', entry);
+      }
+      // Push APNS pour que la notif apparaisse même app fermée — l'user tape
+      // le bouton « Coller » sur la notif → clipboard écrit sans ouvrir l'app.
+      pushClipboardAPNS(targetDeviceId, entry).catch(() => {});
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, id: entry.id }));
+    } catch (err) {
+      res.writeHead(500); res.end(JSON.stringify({ ok: false, error: String(err?.message || err) }));
+    }
     return;
   }
   if (req.method === 'POST' && req.url?.startsWith('/admin/reply')) {
@@ -398,7 +461,7 @@ if (apnsKey && process.env.APNS_KEY_ID && process.env.APNS_TEAM_ID) {
   console.warn(`[Poof] APNS disabled — hasKey=${!!apnsKey} hasKeyID=${!!process.env.APNS_KEY_ID} hasTeamID=${!!process.env.APNS_TEAM_ID}`);
 }
 
-async function sendApnsPush(toDeviceId, title, body) {
+async function sendApnsPush(toDeviceId, title, body, options = {}) {
   if (!apnProvider) {
     console.warn(`[Poof] sendApnsPush ABORT — no APNS provider`);
     return;
@@ -413,6 +476,11 @@ async function sendApnsPush(toDeviceId, title, body) {
   notif.sound = 'default';
   notif.topic = APNS_TOPIC;
   notif.pushType = 'alert';
+  // Category = déclenche l'affichage du bouton d'action iOS "📋 Coller".
+  // Le payload custom (userInfo) porte le texte pour que le handler action
+  // AppDelegate puisse l'écrire dans UIPasteboard sans ouvrir l'app.
+  if (options.category) notif.category = options.category;
+  if (options.userInfo) notif.payload = { ...notif.payload, ...options.userInfo };
   console.log(`[Poof] APNS → sending to ${toDeviceId} token=${entry.token.slice(0, 12)}… topic=${APNS_TOPIC} title="${title}"`);
   try {
     const result = await apnProvider.send(notif, entry.token);
@@ -429,6 +497,30 @@ async function sendApnsPush(toDeviceId, title, body) {
   } catch (err) {
     console.error('[Poof] APNS send error:', err);
   }
+}
+
+/// Push APNS d'un clipboard entrant. Le body affiche un preview tronqué du
+/// texte pour l'utilisateur, la category déclenche le bouton « 📋 Coller »
+/// visible directement sur la notif. Le tap sur le bouton écrit dans le
+/// pasteboard sans ouvrir l'app (voir AppDelegate).
+async function pushClipboardAPNS(targetDeviceId, entry) {
+  const preview = entry.text.length > 120
+    ? entry.text.slice(0, 117) + '…'
+    : entry.text;
+  await sendApnsPush(
+    targetDeviceId,
+    `📋 Nouveau clipboard de ${entry.senderName}`,
+    preview,
+    {
+      category: 'CLIPBOARD_INBOUND',
+      userInfo: {
+        type: 'clipboard',
+        clipboardId: entry.id,
+        text: entry.text,
+        senderName: entry.senderName,
+      },
+    }
+  );
 }
 
 /**
@@ -579,6 +671,16 @@ io.on('connection', (socket) => {
       if (entry.targetId !== deviceId) continue;
       console.log(`[Poof] flush pending relay file ${fileId} → ${deviceId}`);
       socket.emit('relay-file-ready', { fileId, meta: entry.meta });
+    }
+
+    // Idem pour les clipboards en attente (envoyés via POST /relay/clipboard
+    // pendant que le target était offline).
+    const pendingClips = pendingClipboards.get(deviceId);
+    if (pendingClips && pendingClips.length > 0) {
+      for (const entry of pendingClips) {
+        console.log(`[Poof] flush pending clipboard ${entry.id} → ${deviceId}`);
+        socket.emit('clipboard-inbound', entry);
+      }
     }
   });
 
