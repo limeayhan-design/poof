@@ -674,13 +674,16 @@ io.on('connection', (socket) => {
     }
 
     // Idem pour les clipboards en attente (envoyés via POST /relay/clipboard
-    // pendant que le target était offline).
+    // pendant que le target était offline). On purge la queue après flush
+    // pour éviter le spam à chaque reconnexion socket.io (sinon le user
+    // voit "collé depuis iPhone" à chaque hello).
     const pendingClips = pendingClipboards.get(deviceId);
     if (pendingClips && pendingClips.length > 0) {
       for (const entry of pendingClips) {
         console.log(`[Poof] flush pending clipboard ${entry.id} → ${deviceId}`);
         socket.emit('clipboard-inbound', entry);
       }
+      pendingClipboards.delete(deviceId);
     }
   });
 
