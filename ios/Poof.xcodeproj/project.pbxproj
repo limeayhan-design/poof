@@ -9,51 +9,22 @@
 /* Begin PBXBuildFile section */
 		3FA0000000000000000000A1 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 3FA0000000000000000000C1 /* WebRTC */; };
 		3FA0000000000000000000A2 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = 3FA0000000000000000000C2 /* SocketIO */; };
-		4A00000000000000000000EE /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4A00000000000000000000E7 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		4B00000000000000000000EE /* ScreenBroadcastExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 4B00000000000000000000E7 /* ScreenBroadcastExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		3FEEC0DE0000000000000004 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 3FEEC0DE0000000000000014 /* WebRTC */; };
+		3FEEC0DE0000000000000005 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = 3FEEC0DE0000000000000015 /* SocketIO */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		4A00000000000000000000ED /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 3F35605D301249A4000FF498 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 4A00000000000000000000E1;
-			remoteInfo = ShareExtension;
-		};
-		4B00000000000000000000ED /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 3F35605D301249A4000FF498 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 4B00000000000000000000E1;
-			remoteInfo = ScreenBroadcastExtension;
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		4A00000000000000000000E6 /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			dstPath = "";
-			dstSubfolder = PlugIns;
-			files = (
-				4A00000000000000000000EE /* ShareExtension.appex in Embed Foundation Extensions */,
-				4B00000000000000000000EE /* ScreenBroadcastExtension.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		3F356065301249A4000FF498 /* Poof.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Poof.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3FFC612630226C0200B513EF /* PoofMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PoofMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4A00000000000000000000E7 /* ShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		4B00000000000000000000E7 /* ScreenBroadcastExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ScreenBroadcastExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		4C00000000000000000000E7 /* PoofWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PoofWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		4A00000000000000000000E8 /* Exceptions for "Poof" folder in "ShareExtension" target */ = {
+		3FEEC0DE0000000000000002 /* Exceptions for "Shared" folder in "ShareExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				Shared/SharedStore.swift,
+				SharedStore.swift,
 			);
 			target = 4A00000000000000000000E1 /* ShareExtension */;
 		};
@@ -62,10 +33,20 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		3F356067301249A4000FF498 /* Poof */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				4A00000000000000000000E8 /* Exceptions for "Poof" folder in "ShareExtension" target */,
-			);
 			path = Poof;
+			sourceTree = "<group>";
+		};
+		3FEEC0DE0000000000000001 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3FEEC0DE0000000000000002 /* Exceptions for "Shared" folder in "ShareExtension" target */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		3FFC612730226C0200B513EF /* PoofMac */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = PoofMac;
 			sourceTree = "<group>";
 		};
 		4A00000000000000000000E2 /* ShareExtension */ = {
@@ -73,9 +54,9 @@
 			path = ShareExtension;
 			sourceTree = "<group>";
 		};
-		4B00000000000000000000E2 /* ScreenBroadcastExtension */ = {
+		4C00000000000000000000E2 /* PoofWidgets */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ScreenBroadcastExtension;
+			path = PoofWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -88,12 +69,19 @@
 				3FA0000000000000000000A2 /* SocketIO in Frameworks */,
 			);
 		};
+		3FFC612330226C0200B513EF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				3FEEC0DE0000000000000004 /* WebRTC in Frameworks */,
+				3FEEC0DE0000000000000005 /* SocketIO in Frameworks */,
+			);
+		};
 		4A00000000000000000000E4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
 			);
 		};
-		4B00000000000000000000E4 /* Frameworks */ = {
+		4C00000000000000000000E4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
 			);
@@ -105,8 +93,10 @@
 			isa = PBXGroup;
 			children = (
 				3F356067301249A4000FF498 /* Poof */,
+				3FEEC0DE0000000000000001 /* Shared */,
 				4A00000000000000000000E2 /* ShareExtension */,
-				4B00000000000000000000E2 /* ScreenBroadcastExtension */,
+				4C00000000000000000000E2 /* PoofWidgets */,
+				3FFC612730226C0200B513EF /* PoofMac */,
 				3F356066301249A4000FF498 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -116,7 +106,8 @@
 			children = (
 				3F356065301249A4000FF498 /* Poof.app */,
 				4A00000000000000000000E7 /* ShareExtension.appex */,
-				4B00000000000000000000E7 /* ScreenBroadcastExtension.appex */,
+				4C00000000000000000000E7 /* PoofWidgets.appex */,
+				3FFC612630226C0200B513EF /* PoofMac.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -131,16 +122,13 @@
 				3F356061301249A4000FF498 /* Sources */,
 				3F356062301249A4000FF498 /* Frameworks */,
 				3F356063301249A4000FF498 /* Resources */,
-				4A00000000000000000000E6 /* Embed Foundation Extensions */,
+				3F69DBA330211251003C1FA0 /* ShellScript */,
 			);
 			buildRules = (
 			);
-			dependencies = (
-				4A00000000000000000000EC /* PBXTargetDependency */,
-				4B00000000000000000000EC /* PBXTargetDependency */,
-			);
 			fileSystemSynchronizedGroups = (
 				3F356067301249A4000FF498 /* Poof */,
+				3FEEC0DE0000000000000001 /* Shared */,
 			);
 			name = Poof;
 			packageProductDependencies = (
@@ -149,6 +137,29 @@
 			);
 			productName = Poof;
 			productReference = 3F356065301249A4000FF498 /* Poof.app */;
+			productType = "com.apple.product-type.application";
+		};
+		3FFC612530226C0200B513EF /* PoofMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3FFC612E30226C0300B513EF /* Build configuration list for PBXNativeTarget "PoofMac" */;
+			buildPhases = (
+				3FFC612230226C0200B513EF /* Sources */,
+				3FFC612330226C0200B513EF /* Frameworks */,
+				3FFC612430226C0200B513EF /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				3FEEC0DE0000000000000001 /* Shared */,
+				3FFC612730226C0200B513EF /* PoofMac */,
+			);
+			name = PoofMac;
+			packageProductDependencies = (
+				3FEEC0DE0000000000000014 /* WebRTC */,
+				3FEEC0DE0000000000000015 /* SocketIO */,
+			);
+			productName = PoofMac;
+			productReference = 3FFC612630226C0200B513EF /* PoofMac.app */;
 			productType = "com.apple.product-type.application";
 		};
 		4A00000000000000000000E1 /* ShareExtension */ = {
@@ -169,22 +180,22 @@
 			productReference = 4A00000000000000000000E7 /* ShareExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-		4B00000000000000000000E1 /* ScreenBroadcastExtension */ = {
+		4C00000000000000000000E1 /* PoofWidgets */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 4B00000000000000000000EB /* Build configuration list for PBXNativeTarget "ScreenBroadcastExtension" */;
+			buildConfigurationList = 4C00000000000000000000EB /* Build configuration list for PBXNativeTarget "PoofWidgets" */;
 			buildPhases = (
-				4B00000000000000000000E3 /* Sources */,
-				4B00000000000000000000E4 /* Frameworks */,
-				4B00000000000000000000E5 /* Resources */,
+				4C00000000000000000000E3 /* Sources */,
+				4C00000000000000000000E4 /* Frameworks */,
+				4C00000000000000000000E5 /* Resources */,
 			);
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
-				4B00000000000000000000E2 /* ScreenBroadcastExtension */,
+				4C00000000000000000000E2 /* PoofWidgets */,
 			);
-			name = ScreenBroadcastExtension;
-			productName = ScreenBroadcastExtension;
-			productReference = 4B00000000000000000000E7 /* ScreenBroadcastExtension.appex */;
+			name = PoofWidgets;
+			productName = PoofWidgets;
+			productReference = 4C00000000000000000000E7 /* PoofWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
@@ -200,10 +211,13 @@
 					3F356064301249A4000FF498 = {
 						CreatedOnToolsVersion = 27.0;
 					};
+					3FFC612530226C0200B513EF = {
+						CreatedOnToolsVersion = 27.0;
+					};
 					4A00000000000000000000E1 = {
 						CreatedOnToolsVersion = 27.0;
 					};
-					4B00000000000000000000E1 = {
+					4C00000000000000000000E1 = {
 						CreatedOnToolsVersion = 27.0;
 					};
 				};
@@ -228,7 +242,8 @@
 			targets = (
 				3F356064301249A4000FF498 /* Poof */,
 				4A00000000000000000000E1 /* ShareExtension */,
-				4B00000000000000000000E1 /* ScreenBroadcastExtension */,
+				4C00000000000000000000E1 /* PoofWidgets */,
+				3FFC612530226C0200B513EF /* PoofMac */,
 			);
 		};
 /* End PBXProject section */
@@ -239,20 +254,48 @@
 			files = (
 			);
 		};
+		3FFC612430226C0200B513EF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
 		4A00000000000000000000E5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
 		};
-		4B00000000000000000000E5 /* Resources */ = {
+		4C00000000000000000000E5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		3F69DBA330211251003C1FA0 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			shellPath = /bin/sh;
+			shellScript = (
+				"# Type a script or drag a script file from your workspace to insert its path.",
+				" if [ -f \"/opt/homebrew/bin/swiftformat\" ]; then                                                                                                                                                                                            ",
+				"      /opt/homebrew/bin/swiftformat \"$SRCROOT\"                                                                                                                                                                                               ",
+				"  fi                                                                                                                                                                                                                                         ",
+				"  if [ -f \"/opt/homebrew/bin/swiftlint\" ]; then                                                                                                                                                                                              ",
+				"      /opt/homebrew/bin/swiftlint --config \"$SRCROOT/.swiftlint.yml\"                                                                                                                                                                         ",
+				"  fi           ",
+				"",
+			);
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		3F356061301249A4000FF498 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		3FFC612230226C0200B513EF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
 			);
@@ -262,25 +305,12 @@
 			files = (
 			);
 		};
-		4B00000000000000000000E3 /* Sources */ = {
+		4C00000000000000000000E3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
 			);
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		4A00000000000000000000EC /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 4A00000000000000000000E1 /* ShareExtension */;
-			targetProxy = 4A00000000000000000000ED /* PBXContainerItemProxy */;
-		};
-		4B00000000000000000000EC /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 4B00000000000000000000E1 /* ScreenBroadcastExtension */;
-			targetProxy = 4B00000000000000000000ED /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		3F35606E301249A5000FF498 /* Debug configuration for PBXProject "Poof" */ = {
@@ -412,8 +442,9 @@
 				CODE_SIGN_ENTITLEMENTS = Poof.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HH3HK5PWM3;
+				DEVELOPMENT_TEAM = V7ZG4CJTB7;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Poof-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -441,8 +472,9 @@
 				CODE_SIGN_ENTITLEMENTS = Poof.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HH3HK5PWM3;
+				DEVELOPMENT_TEAM = V7ZG4CJTB7;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Poof-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -462,13 +494,85 @@
 			};
 			name = Release;
 		};
+		3FFC612F30226C0300B513EF /* Debug configuration for PBXNativeTarget "PoofMac" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = PoofMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V7ZG4CJTB7;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "PoofMac-Info.plist";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Poof.App.PoofMac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		3FFC613030226C0300B513EF /* Release configuration for PBXNativeTarget "PoofMac" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = PoofMac.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = V7ZG4CJTB7;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "PoofMac-Info.plist";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Poof.App.PoofMac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		4A00000000000000000000E9 /* Debug configuration for PBXNativeTarget "ShareExtension" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HH3HK5PWM3;
+				DEVELOPMENT_TEAM = V7ZG4CJTB7;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "ShareExtension-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
@@ -496,7 +600,7 @@
 				CODE_SIGN_ENTITLEMENTS = ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HH3HK5PWM3;
+				DEVELOPMENT_TEAM = V7ZG4CJTB7;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "ShareExtension-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
@@ -518,15 +622,15 @@
 			};
 			name = Release;
 		};
-		4B00000000000000000000E9 /* Debug configuration for PBXNativeTarget "ScreenBroadcastExtension" */ = {
+		4C00000000000000000000E9 /* Debug configuration for PBXNativeTarget "PoofWidgets" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = ScreenBroadcastExtension.entitlements;
+				CODE_SIGN_ENTITLEMENTS = PoofWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HH3HK5PWM3;
+				DEVELOPMENT_TEAM = V7ZG4CJTB7;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "ScreenBroadcastExtension-Info.plist";
+				INFOPLIST_FILE = "PoofWidgets-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -534,7 +638,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.Poof.App.Poof.ScreenBroadcastExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Poof.App.Poof.PoofWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -546,15 +650,15 @@
 			};
 			name = Debug;
 		};
-		4B00000000000000000000EA /* Release configuration for PBXNativeTarget "ScreenBroadcastExtension" */ = {
+		4C00000000000000000000EA /* Release configuration for PBXNativeTarget "PoofWidgets" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				CODE_SIGN_ENTITLEMENTS = ScreenBroadcastExtension.entitlements;
+				CODE_SIGN_ENTITLEMENTS = PoofWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HH3HK5PWM3;
+				DEVELOPMENT_TEAM = V7ZG4CJTB7;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "ScreenBroadcastExtension-Info.plist";
+				INFOPLIST_FILE = "PoofWidgets-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -562,7 +666,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.Poof.App.Poof.ScreenBroadcastExtension;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Poof.App.Poof.PoofWidgets;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -593,6 +697,14 @@
 			);
 			defaultConfigurationName = Release;
 		};
+		3FFC612E30226C0300B513EF /* Build configuration list for PBXNativeTarget "PoofMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3FFC612F30226C0300B513EF /* Debug configuration for PBXNativeTarget "PoofMac" */,
+				3FFC613030226C0300B513EF /* Release configuration for PBXNativeTarget "PoofMac" */,
+			);
+			defaultConfigurationName = Release;
+		};
 		4A00000000000000000000EB /* Build configuration list for PBXNativeTarget "ShareExtension" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -601,11 +713,11 @@
 			);
 			defaultConfigurationName = Release;
 		};
-		4B00000000000000000000EB /* Build configuration list for PBXNativeTarget "ScreenBroadcastExtension" */ = {
+		4C00000000000000000000EB /* Build configuration list for PBXNativeTarget "PoofWidgets" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				4B00000000000000000000E9 /* Debug configuration for PBXNativeTarget "ScreenBroadcastExtension" */,
-				4B00000000000000000000EA /* Release configuration for PBXNativeTarget "ScreenBroadcastExtension" */,
+				4C00000000000000000000E9 /* Debug configuration for PBXNativeTarget "PoofWidgets" */,
+				4C00000000000000000000EA /* Release configuration for PBXNativeTarget "PoofWidgets" */,
 			);
 			defaultConfigurationName = Release;
 		};
@@ -637,6 +749,16 @@
 			productName = WebRTC;
 		};
 		3FA0000000000000000000C2 /* SocketIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3FA0000000000000000000B2 /* XCRemoteSwiftPackageReference "socket" */;
+			productName = SocketIO;
+		};
+		3FEEC0DE0000000000000014 /* WebRTC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3FA0000000000000000000B1 /* XCRemoteSwiftPackageReference "WebRTC" */;
+			productName = WebRTC;
+		};
+		3FEEC0DE0000000000000015 /* SocketIO */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 3FA0000000000000000000B2 /* XCRemoteSwiftPackageReference "socket" */;
 			productName = SocketIO;

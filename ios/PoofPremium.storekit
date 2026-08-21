@@ -1,0 +1,144 @@
+{
+  "identifier" : "5E9F71C0-POOF-PREMIUM-STOREKIT",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {
+    "_applicationInternalID" : "",
+    "_developerTeamID" : "",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "fr_FR",
+    "_storefront" : "FRA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21578901",
+      "localizations" : [
+        {
+          "description" : "Poof Premium — accès à toutes les fonctionnalités avancées.",
+          "displayName" : "Poof Premium",
+          "locale" : "fr_FR"
+        },
+        {
+          "description" : "Poof Premium — full access to every advanced feature.",
+          "displayName" : "Poof Premium",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "Poof Premium",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "4.99",
+          "familyShareable" : true,
+          "groupNumber" : 1,
+          "internalID" : "21578902",
+          "introductoryOffer" : {
+            "internalID" : "21578903",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Facturé chaque mois. Résiliation à tout moment.",
+              "displayName" : "Poof Premium mensuel",
+              "locale" : "fr_FR"
+            },
+            {
+              "description" : "Billed monthly. Cancel anytime.",
+              "displayName" : "Poof Premium Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.Poof.Premium.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Poof Premium Monthly",
+          "subscriptionGroupID" : "21578901",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "59.88",
+          "familyShareable" : true,
+          "groupNumber" : 2,
+          "internalID" : "21578904",
+          "introductoryOffer" : {
+            "internalID" : "21578905",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
+          "localizations" : [
+            {
+              "description" : "Facturé une fois par an. Résiliation à tout moment.",
+              "displayName" : "Poof Premium annuel",
+              "locale" : "fr_FR"
+            },
+            {
+              "description" : "Billed yearly. Cancel anytime.",
+              "displayName" : "Poof Premium Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.Poof.Premium.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Poof Premium Yearly",
+          "subscriptionGroupID" : "21578901",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

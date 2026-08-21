@@ -10,17 +10,17 @@ enum FeatureStatus {
 
     var label: String {
         switch self {
-        case .available:  return "Available now"
-        case .preview:    return "Preview"
-        case .comingSoon: return "Coming soon"
+        case .available: "Available now"
+        case .preview: "Preview"
+        case .comingSoon: "Coming soon"
         }
     }
 
     var color: Color {
         switch self {
-        case .available:  return PoofTheme.green
-        case .preview:    return PoofTheme.accent2
-        case .comingSoon: return PoofTheme.textSecondary
+        case .available: PoofTheme.green
+        case .preview: PoofTheme.accent2
+        case .comingSoon: PoofTheme.textSecondary
         }
     }
 }
@@ -128,7 +128,7 @@ struct FeaturePreviewSheet: View {
     }
 }
 
-// Small "Preview" pill used in tier section headers to be honest about mocks.
+/// Small "Preview" pill used in tier section headers to be honest about mocks.
 struct PreviewPill: View {
     let accent: Color
     var body: some View {

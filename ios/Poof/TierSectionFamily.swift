@@ -6,27 +6,38 @@ import SwiftUI
 
 struct TierSectionFamily: View {
     @EnvironmentObject private var session: PoofSession
+    @AppStorage(KidControls.keyEnabled) private var kidEnabled: Bool = false
     @State private var previewFeature: FeaturePreview?
 
+    var onOpenAddDevice: () -> Void = {}
+    var onFamilyDrop: () -> Void = {}
+    var onOpenKidControls: () -> Void = {}
+
     private let familyColors: [Color] = [
-        Color(red: 1.0,   green: 0.478, blue: 0.612),
+        Color(red: 1.0, green: 0.478, blue: 0.612),
         Color(red: 0.357, green: 0.545, blue: 1.0),
         Color(red: 0.545, green: 0.494, blue: 1.0),
         Color(red: 0.247, green: 0.749, blue: 0.498),
-        Color(red: 1.0,   green: 0.749, blue: 0.235)
+        Color(red: 1.0, green: 0.749, blue: 0.235)
     ]
 
     private func initials(from name: String) -> String {
         let parts = name.split(separator: " ").prefix(2)
-        let letters = parts.compactMap { $0.first }.map(String.init).joined()
+        let letters = parts.compactMap(\.first).map(String.init).joined()
         return letters.isEmpty ? String(name.prefix(2)).uppercased() : letters.uppercased()
     }
 
     private func relative(_ date: Date) -> String {
         let s = -Int(date.timeIntervalSinceNow)
-        if s < 60 { return "just now" }
-        if s < 3600 { return "\(s / 60)m ago" }
-        if s < 86400 { return "\(s / 3600)h ago" }
+        if s < 60 {
+            return "just now"
+        }
+        if s < 3600 {
+            return "\(s / 60)m ago"
+        }
+        if s < 86400 {
+            return "\(s / 3600)h ago"
+        }
         return "\(s / 86400)d ago"
     }
 
@@ -74,14 +85,7 @@ struct TierSectionFamily: View {
 
     private func inviteFamilyCard(accent: Color) -> some View {
         Button {
-            previewFeature = FeaturePreview(
-                icon: "person.crop.circle.badge.plus",
-                title: "Invite your family",
-                tagline: "Pair phones, tablets, and laptops",
-                status: .available,
-                description: "Tap the gear icon at the top right and pair a device. Your family appears here with live online status and instant broadcast.",
-                accent: accent
-            )
+            onOpenAddDevice()
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "person.crop.circle.badge.plus")
@@ -109,7 +113,7 @@ struct TierSectionFamily: View {
         .buttonStyle(.plain)
     }
 
-    private func membersStrip(peers: [PairedPeer], accent: Color) -> some View {
+    private func membersStrip(peers: [PairedPeer], accent _: Color) -> some View {
         HStack(spacing: 10) {
             ForEach(Array(peers.enumerated()), id: \.element.id) { idx, peer in
                 let color = familyColors[idx % familyColors.count]
@@ -180,16 +184,11 @@ struct TierSectionFamily: View {
 
     private func familyDropCard(accent: Color, hasPeers: Bool) -> some View {
         Button {
-            previewFeature = FeaturePreview(
-                icon: "square.and.arrow.down.on.square.fill",
-                title: "Drop for family",
-                tagline: "Broadcast to everyone at once",
-                status: hasPeers ? .preview : .preview,
-                description: hasPeers
-                    ? "Send a photo, video, or file and every paired family member gets it instantly. One tap, everywhere. Rolling out next update."
-                    : "Pair at least one family device first, then this becomes a one-tap broadcast to everyone.",
-                accent: accent
-            )
+            if hasPeers {
+                onFamilyDrop()
+            } else {
+                onOpenAddDevice()
+            }
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "square.and.arrow.down.on.square.fill")
@@ -205,13 +204,10 @@ struct TierSectionFamily: View {
                         )
                     )
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 5) {
-                        Text("Drop for family")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(PoofTheme.textPrimary)
-                        PreviewPill(accent: accent)
-                    }
-                    Text("Everyone receives instantly")
+                    Text("Drop for family")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(PoofTheme.textPrimary)
+                    Text(hasPeers ? "Everyone receives instantly" : "Pair a device to enable")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(PoofTheme.textTertiary)
                 }
@@ -225,32 +221,29 @@ struct TierSectionFamily: View {
             .glassCard(radius: PoofTheme.radiusMd)
             .overlay(
                 RoundedRectangle(cornerRadius: PoofTheme.radiusMd)
-                    .strokeBorder(accent.opacity(0.35), lineWidth: 1)
+                    .strokeBorder(accent.opacity(hasPeers ? 0.35 : 0.15), lineWidth: 1)
             )
+            .opacity(hasPeers ? 1.0 : 0.7)
         }
         .buttonStyle(.plain)
     }
 
     private func kidControlsButton(accent: Color) -> some View {
         Button {
-            previewFeature = FeaturePreview(
-                icon: "lock.shield.fill",
-                title: "Kid controls",
-                tagline: "Safe sharing for younger family",
-                status: .comingSoon,
-                description: "Approve or block incoming files before they land on your kid's device. Schedule quiet hours, review activity, and lock sensitive folders.",
-                accent: accent
-            )
+            onOpenKidControls()
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: "lock.shield.fill")
+                Image(systemName: kidEnabled ? "lock.shield.fill" : "lock.shield")
                     .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(kidEnabled ? accent : PoofTheme.textSecondary)
                 Text("Kid controls")
                     .font(.system(size: 12, weight: .semibold))
                 Spacer()
-                Text("Coming soon")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(PoofTheme.textTertiary)
+                Text(kidEnabled ? "On" : "Off")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(kidEnabled ? accent : PoofTheme.textTertiary)
+                    .padding(.horizontal, 6).padding(.vertical, 2)
+                    .background(Capsule().fill((kidEnabled ? accent : PoofTheme.textTertiary).opacity(0.14)))
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundColor(PoofTheme.textTertiary)

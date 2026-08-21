@@ -1,154 +1,231 @@
 import SwiftUI
 
-// First-launch onboarding — asks the user to set the signaling relay URL.
-// Two paths: scan the QR from an already-paired device (contains host), or type it.
-
+/// Onboarding première ouverture — 4 slides swipeable dans l'identité
+/// visuelle globale de Poof (gradient bleu → gris, glass, accent cyan).
+/// Set `PoofSession.hasOnboarded` à la fin pour ne plus jamais réafficher.
 struct PoofOnboardingSheet: View {
     @EnvironmentObject var session: PoofSession
     @Environment(\.dismiss) private var dismiss
-    @State private var name: String = PoofDeviceIdentity.name
-    @State private var urlField: String = ""
-    @State private var showScanner = false
-    @State private var errorText: String?
+    @State private var currentPage: Int = 0
+
+    private struct Slide: Identifiable {
+        let id: Int
+        let icon: String
+        let title: String
+        let subtitle: String
+    }
+
+    private let slides: [Slide] = [
+        Slide(
+            id: 0,
+            icon: "paperplane.fill",
+            title: "Welcome to Poof",
+            subtitle: "Send photos, videos and files to any of your devices, instantly."
+        ),
+        Slide(
+            id: 1,
+            icon: "iphone.radiowaves.left.and.right",
+            title: "Pair without a code",
+            subtitle: "Open Poof on both sides — your iPhone and Mac see each other nearby. One tap, one accept, done."
+        ),
+        Slide(
+            id: 2,
+            icon: "lock.shield.fill",
+            title: "Private by design",
+            subtitle: "End-to-end encrypted. No account required. Your files never sit on our servers."
+        ),
+        Slide(
+            id: 3,
+            icon: "gift.fill",
+            title: "Early supporter",
+            subtitle: "Send 20 files during the beta and unlock 1 month of Premium free at launch."
+        )
+    ]
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                PoofBackground()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        heroBlock
-                        nameBlock
-                        Divider().background(PoofTheme.glassStroke)
-                        relayBlock
-                        Divider().background(PoofTheme.glassStroke)
-                        continueButton
-                    }
-                    .padding(20)
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { }
-            .sheet(isPresented: $showScanner) {
-                QRScannerView { raw in
-                    showScanner = false
-                    apply(scanned: raw)
-                }
-            }
+        ZStack {
+            background
+            content
+            topBar
         }
+        .preferredColorScheme(.dark)
         .interactiveDismissDisabled(true)
     }
 
-    private var heroBlock: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Welcome to Poof")
-                .font(.system(size: 32, weight: .bold, design: .rounded))
-                .foregroundColor(PoofTheme.textPrimary)
-            Text("Send anything to any device, instantly and privately.\nTwo quick steps to get started.")
-                .font(.system(size: 14))
-                .foregroundColor(PoofTheme.textSecondary)
-        }
+    // MARK: - Background
+
+    private var background: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0 / 255, green: 94 / 255, blue: 255 / 255),
+                Color(red: 121 / 255, green: 121 / 255, blue: 121 / 255)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
     }
 
-    private var nameBlock: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("1. Name this device", systemImage: "1.circle.fill")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(PoofTheme.textPrimary)
-            TextField("Device name", text: $name)
-                .font(.system(size: 15))
-                .foregroundColor(PoofTheme.textPrimary)
-                .padding(.horizontal, 14).padding(.vertical, 12)
-                .glassCard()
+    // MARK: - Content
+
+    private var content: some View {
+        VStack(spacing: 0) {
+            TabView(selection: $currentPage) {
+                ForEach(slides) { slide in
+                    slideView(slide)
+                        .tag(slide.id)
+                        .padding(.horizontal, 24)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+
+            bottomControls
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
         }
+        .padding(.top, 60)
     }
 
-    private var relayBlock: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("2. Point to your Poof relay", systemImage: "2.circle.fill")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(PoofTheme.textPrimary)
-            Text("Scan the QR shown on another Poof device, or type its address (e.g. http://192.168.1.42:3000).")
-                .font(.system(size: 12))
-                .foregroundColor(PoofTheme.textTertiary)
+    private func slideView(_ slide: Slide) -> some View {
+        VStack(spacing: 28) {
+            Spacer(minLength: 20)
 
-            Button {
-                showScanner = true
-            } label: {
-                Label("Scan QR from another device", systemImage: "qrcode.viewfinder")
-                    .font(.system(size: 14, weight: .semibold))
+            hero(icon: slide.icon)
+
+            VStack(spacing: 12) {
+                Text(slide.title)
+                    .font(.system(size: 30, weight: .heavy, design: .rounded))
                     .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Capsule().fill(PoofTheme.accent))
+                    .multilineTextAlignment(.center)
+                Text(slide.subtitle)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.white.opacity(0.78))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 4)
             }
 
-            HStack {
-                Rectangle().fill(PoofTheme.glassStroke).frame(height: 1)
-                Text("or").font(.system(size: 11)).foregroundColor(PoofTheme.textTertiary)
-                Rectangle().fill(PoofTheme.glassStroke).frame(height: 1)
-            }
+            Spacer()
+        }
+    }
 
-            TextField("http://…", text: $urlField)
-                .font(.system(size: 13, design: .monospaced))
-                .foregroundColor(PoofTheme.textPrimary)
-                .keyboardType(.URL)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .padding(.horizontal, 14).padding(.vertical, 12)
-                .glassCard()
+    private func hero(icon: String) -> some View {
+        ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color.white.opacity(0.32),
+                            Color.white.opacity(0.02)
+                        ],
+                        center: .center, startRadius: 6, endRadius: 90
+                    )
+                )
+                .frame(width: 200, height: 200)
 
-            if let err = errorText {
-                Text(err)
-                    .font(.system(size: 12))
-                    .foregroundColor(PoofTheme.danger)
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 10 / 255, green: 226 / 255, blue: 255 / 255),
+                            Color(red: 0 / 255, green: 0 / 255, blue: 255 / 255)
+                        ],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+                .frame(width: 118, height: 118)
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.55), lineWidth: 0.8))
+                .shadow(color: Color.black.opacity(0.20), radius: 12, y: 6)
+
+            Image(systemName: icon)
+                .font(.system(size: 52, weight: .semibold))
+                .foregroundColor(.white)
+                .shadow(color: Color.black.opacity(0.25), radius: 4, y: 3)
+        }
+    }
+
+    // MARK: - Bottom controls
+
+    private var bottomControls: some View {
+        VStack(spacing: 18) {
+            pageIndicator
+            actionButton
+        }
+    }
+
+    private var pageIndicator: some View {
+        HStack(spacing: 8) {
+            ForEach(slides) { slide in
+                Capsule()
+                    .fill(currentPage == slide.id ? Color.white : Color.white.opacity(0.32))
+                    .frame(width: currentPage == slide.id ? 22 : 8, height: 8)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: currentPage)
             }
         }
     }
 
-    private var continueButton: some View {
+    private var actionButton: some View {
         Button {
-            saveAndDismiss()
+            PoofHaptics.impactMedium()
+            if currentPage < slides.count - 1 {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    currentPage += 1
+                }
+            } else {
+                finish()
+            }
         } label: {
-            Text("Get started")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
+            Text(currentPage < slides.count - 1 ? "Next" : "Get started")
+                .font(.system(size: 17, weight: .heavy))
+                .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(Capsule().fill(canContinue ? PoofTheme.accent : PoofTheme.accent.opacity(0.4)))
+                .frame(height: 54)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color.white)
+                )
+                .shadow(color: Color.black.opacity(0.20), radius: 8, y: 4)
         }
-        .disabled(!canContinue)
         .buttonStyle(.plain)
     }
 
-    private var canContinue: Bool {
-        Self.parseURL(urlField) != nil
+    // MARK: - Top bar (Skip)
+
+    @ViewBuilder
+    private var topBar: some View {
+        if currentPage < slides.count - 1 {
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        PoofHaptics.tap()
+                        finish()
+                    } label: {
+                        Text("Skip")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.85))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Capsule().fill(Color.black.opacity(0.28)))
+                            .overlay(Capsule().strokeBorder(Color.white.opacity(0.20), lineWidth: 0.6))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 16)
+                    .padding(.trailing, 16)
+                }
+                Spacer()
+            }
+        }
     }
 
     // MARK: - Actions
 
-    private func apply(scanned raw: String) {
-        if let host = Self.extractHost(from: raw) {
-            urlField = host
-            errorText = nil
-        } else {
-            errorText = "Couldn't read a URL from that QR."
-        }
-    }
-
-    private func saveAndDismiss() {
-        guard let url = Self.parseURL(urlField) else {
-            errorText = "That doesn't look like a valid URL."
-            return
-        }
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmed.isEmpty { PoofDeviceIdentity.name = trimmed }
-        session.updateSignalingURL(url)
+    private func finish() {
         session.completeOnboarding()
         dismiss()
     }
 
-    // MARK: - Parsing
+    // MARK: - Deep link helpers (utilisés par PairingSheet pour un pair via URL)
 
     static func parseURL(_ raw: String) -> URL? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -156,19 +233,5 @@ struct PoofOnboardingSheet: View {
         let withScheme = trimmed.contains("://") ? trimmed : "http://\(trimmed)"
         guard let url = URL(string: withScheme), url.host != nil else { return nil }
         return url
-    }
-
-    static func extractHost(from raw: String) -> String? {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") {
-            if let idx = trimmed.range(of: "/#") {
-                return String(trimmed[..<idx.lowerBound])
-            }
-            if let idx = trimmed.range(of: "/", range: trimmed.index(trimmed.startIndex, offsetBy: 8)..<trimmed.endIndex) {
-                return String(trimmed[..<idx.lowerBound])
-            }
-            return trimmed
-        }
-        return nil
     }
 }

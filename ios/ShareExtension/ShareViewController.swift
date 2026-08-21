@@ -12,7 +12,6 @@ import UniformTypeIdentifiers
 // PoofFileTransfer pipeline.
 
 final class ShareViewController: UIViewController {
-
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor(red: 0.09, green: 0.075, blue: 0.145, alpha: 1)
@@ -46,7 +45,7 @@ final class ShareViewController: UIViewController {
             spinner.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             spinner.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -18),
             label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            label.topAnchor.constraint(equalTo: spinner.bottomAnchor, constant: 14),
+            label.topAnchor.constraint(equalTo: spinner.bottomAnchor, constant: 14)
         ])
     }
 
@@ -64,7 +63,9 @@ final class ShareViewController: UIViewController {
     private func ingest(_ provider: NSItemProvider) async {
         let candidates: [UTType] = [.fileURL, .image, .movie, .pdf, .url, .plainText, .data]
         for type in candidates where provider.hasItemConformingToTypeIdentifier(type.identifier) {
-            if await load(provider, type: type) { return }
+            if await load(provider, type: type) {
+                return
+            }
         }
     }
 
@@ -111,7 +112,13 @@ final class ShareViewController: UIViewController {
 
         case let data as Data:
             let ext = hint.preferredFilenameExtension ?? "bin"
-            return writeBlob(data, id: id, filename: "share.\(ext)", mime: hint.preferredMIMEType ?? "application/octet-stream", inbox: inbox)
+            return writeBlob(
+                data,
+                id: id,
+                filename: "share.\(ext)",
+                mime: hint.preferredMIMEType ?? "application/octet-stream",
+                inbox: inbox
+            )
 
         default:
             return false

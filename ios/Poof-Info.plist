@@ -33,14 +33,34 @@
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Scan a QR code to pair with another Poof device.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Discover your Poof server on the local network.</string>
+	<string>Poof discovers your server and nearby Poof devices on your Wi-Fi.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_poof._tcp</string>
+		<string>_poof-offline._tcp</string>
+		<string>_poof-offline._udp</string>
+		<string>_poof-pair._tcp</string>
+		<string>_poof-pair._udp</string>
+	</array>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Poof uses Bluetooth to send files offline to nearby devices without an internet connection.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Poof uses Bluetooth to broadcast your device to nearby recipients when offline.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Save received photos and videos to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Choose a photo or video to send to your paired device.</string>
+	<string>Poof needs Photos access to save received files, and to remove saved copies when a Secure send expires.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Poof uses your Me card photo to personalise the cloud avatar in the top-right of the app.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Poof uses Face ID to unlock Secure files you receive with biometric protection.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

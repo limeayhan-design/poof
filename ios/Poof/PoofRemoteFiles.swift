@@ -13,18 +13,21 @@ nonisolated struct RemoteEntry: Identifiable, Equatable {
     let name: String
     let isDir: Bool
     let size: UInt64
-    var id: String { (isDir ? "d:" : "f:") + name }
+    var id: String {
+        (isDir ? "d:" : "f:") + name
+    }
 }
 
 final class PoofRemoteFiles {
-
     /// Handler for the peer's replies. Called on `queue` thread.
     var onListReceived: ((_ requestId: String, _ path: String, _ entries: [RemoteEntry]) -> Void)?
 
     private weak var manager: PoofWebRTCManager?
     private let queue = DispatchQueue(label: "poof.remote-files", qos: .userInitiated)
 
-    init(manager: PoofWebRTCManager) { self.manager = manager }
+    init(manager: PoofWebRTCManager) {
+        self.manager = manager
+    }
 
     // MARK: - Requester side (this device browsing peer)
 
@@ -82,7 +85,9 @@ final class PoofRemoteFiles {
 
     private func respondList(_ env: PoofEnvelope) {
         let path = (env.payload["path"] as? String) ?? ""
-        guard let url = resolvedURL(for: path) else { replyEmpty(env.id, path); return }
+        guard let url = resolvedURL(for: path) else { replyEmpty(env.id, path)
+            return
+        }
         var entries: [[String: Any]] = []
         if let contents = try? FileManager.default.contentsOfDirectory(
             at: url, includingPropertiesForKeys: [.isDirectoryKey, .fileSizeKey], options: [.skipsHiddenFiles]

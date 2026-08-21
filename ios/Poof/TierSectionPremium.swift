@@ -9,9 +9,7 @@ struct TierSectionPremium: View {
     @EnvironmentObject private var session: PoofSession
     @State private var previewFeature: FeaturePreview?
     @State private var showRemoteFiles = false
-    @State private var showScreenMirror = false
-    @State private var showScreenViewer = false
-    var onOpenFolderPicker: (() -> Void)? = nil
+    var onOpenFolderPicker: (() -> Void)?
 
     var body: some View {
         let accent = PoofTier.premium.accent
@@ -84,7 +82,13 @@ struct TierSectionPremium: View {
 
             // 2x2 grid of feature tiles — each opens a preview sheet
             HStack(spacing: 10) {
-                powerTile(icon: "folder.fill", title: "Folder Drop", subtitle: "Any size", status: .available, accent: accent) {
+                powerTile(
+                    icon: "folder.fill",
+                    title: "Folder Drop",
+                    subtitle: "Any size",
+                    status: .available,
+                    accent: accent
+                ) {
                     if let onOpenFolderPicker {
                         onOpenFolderPicker()
                     } else {
@@ -98,26 +102,24 @@ struct TierSectionPremium: View {
                         )
                     }
                 }
-                powerTile(icon: "rectangle.on.rectangle", title: "Screen Mirror", subtitle: session.screenBroadcast.isBroadcasting ? "Live · tap to stop" : "1-tap to any device", status: .available, accent: accent) {
-                    if session.isRTCConnected {
-                        showScreenMirror = true
-                    } else {
-                        previewFeature = FeaturePreview(
-                            icon: "rectangle.on.rectangle",
-                            title: "Screen Mirror",
-                            tagline: "Cast your screen anywhere",
-                            status: .available,
-                            description: "Push your iPhone screen to a paired device at ~10 FPS. Fully P2P — the frames flow through the encrypted WebRTC link, never a server. Connect a device first, then reopen this tile.",
-                            accent: accent
-                        )
-                    }
+                powerTile(
+                    icon: "externaldrive.connected.to.line.below.fill",
+                    title: "Remote Files",
+                    subtitle: "Browse peer",
+                    status: .available,
+                    accent: accent
+                ) {
+                    showRemoteFiles = true
                 }
             }
             HStack(spacing: 10) {
-                powerTile(icon: "externaldrive.connected.to.line.below.fill", title: "Remote Files", subtitle: "Browse peer", status: .available, accent: accent) {
-                    showRemoteFiles = true
-                }
-                powerTile(icon: "eye.fill", title: "Read receipts", subtitle: "Sent · Delivered · Seen", status: .available, accent: accent) {
+                powerTile(
+                    icon: "eye.fill",
+                    title: "Read receipts",
+                    subtitle: "Sent · Delivered · Seen",
+                    status: .available,
+                    accent: accent
+                ) {
                     previewFeature = FeaturePreview(
                         icon: "eye.fill",
                         title: "Read receipts",
@@ -133,19 +135,16 @@ struct TierSectionPremium: View {
         .sheet(isPresented: $showRemoteFiles) {
             RemoteFilesSheet().environmentObject(session)
         }
-        .sheet(isPresented: $showScreenMirror) {
-            ScreenMirrorSenderSheet().environmentObject(session)
-        }
-        .fullScreenCover(isPresented: $showScreenViewer) {
-            ScreenMirrorReceiverSheet().environmentObject(session)
-        }
-        .onChange(of: session.screenBroadcast.isReceiving) { _, receiving in
-            if receiving && !showScreenViewer { showScreenViewer = true }
-            if !receiving && showScreenViewer { showScreenViewer = false }
-        }
     }
 
-    private func powerTile(icon: String, title: String, subtitle: String, status: FeatureStatus, accent: Color, action: @escaping () -> Void) -> some View {
+    private func powerTile(
+        icon: String,
+        title: String,
+        subtitle: String,
+        status: FeatureStatus,
+        accent: Color,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Image(systemName: icon)

@@ -1,6 +1,6 @@
-import SwiftUI
-import CoreImage.CIFilterBuiltins
 import AVFoundation
+import CoreImage.CIFilterBuiltins
+import SwiftUI
 
 // Settings + pairing sheet — mirrors the pair modal in pc/index.html:
 //   QR + pair code + fallback URL + join field + rename + history entry.
@@ -16,77 +16,130 @@ struct PairingSheet: View {
     @State private var showHistory = false
     @State private var showPricing = false
 
-    private var tier: PoofTier { PoofTier(rawValue: tierRaw) ?? .free }
+    private var tier: PoofTier {
+        PoofTier(rawValue: tierRaw) ?? .free
+    }
+
     private var atPairingLimit: Bool {
         guard let max = tier.maxPairedDevices else { return false }
         return session.peers.peers.count >= max
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                PoofBackground()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 22) {
+        ZStack {
+            PoofBackground()
+
+            VStack(spacing: 0) {
+                sheetNavBar
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 18) {
                         if atPairingLimit {
-                            pairingLimitBanner
-                            Divider().background(PoofTheme.glassStroke)
+                            pairingLimitBanner.appleEntry(delay: 0.05)
                         } else {
-                            addDeviceBlock
-                            Divider().background(PoofTheme.glassStroke)
-                            joinBlock
-                            Divider().background(PoofTheme.glassStroke)
+                            addDeviceBlock.appleEntry(delay: 0.05)
+                            joinBlock.appleEntry(delay: 0.12)
                         }
-                        renameBlock
-                        Divider().background(PoofTheme.glassStroke)
-                        signalingBlock
-                        Divider().background(PoofTheme.glassStroke)
-                        debugBlock
-                        Divider().background(PoofTheme.glassStroke)
-                        HStack {
-                            Button {
-                                showHistory = true
-                            } label: {
-                                Label("History", systemImage: "clock.arrow.circlepath")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(PoofTheme.textPrimary)
-                                    .padding(.horizontal, 14).padding(.vertical, 10)
-                                    .glassCard()
-                            }
-                            Spacer()
-                        }
+                        renameBlock.appleEntry(delay: 0.19)
+                        signalingBlock.appleEntry(delay: 0.26)
+                        historyLink.appleEntry(delay: 0.33)
+                        debugBlock.appleEntry(delay: 0.40)
+                        Color.clear.frame(height: 40)
                     }
-                    .padding(20)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
                 }
-            }
-            .navigationTitle("Settings")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }.foregroundColor(PoofTheme.accent)
-                }
-            }
-            .sheet(isPresented: $showScanner) {
-                QRScannerView { code in
-                    showScanner = false
-                    guard !atPairingLimit else {
-                        session.pairError = "Device limit reached. Upgrade or unpair one."
-                        return
-                    }
-                    let extracted = Self.extractPairCode(from: code)
-                    session.joinWithCode(extracted)
-                }
-            }
-            .sheet(isPresented: $showHistory) {
-                HistorySheet().environmentObject(session)
-            }
-            .sheet(isPresented: $showPricing) {
-                PricingSheet()
-            }
-            .onAppear {
-                if session.pairCode == nil && !atPairingLimit { session.requestPairCode() }
             }
         }
+        .sheet(isPresented: $showScanner) {
+            QRScannerView { code in
+                showScanner = false
+                guard !atPairingLimit else {
+                    session.pairError = "Device limit reached. Upgrade or unpair one."
+                    return
+                }
+                let extracted = Self.extractPairCode(from: code)
+                session.joinWithCode(extracted)
+            }
+        }
+        .sheet(isPresented: $showHistory) {
+            HistorySheet().environmentObject(session)
+        }
+        .sheet(isPresented: $showPricing) {
+            PricingSheet()
+        }
+        .onAppear {
+            if session.pairCode == nil, !atPairingLimit {
+                session.requestPairCode()
+            }
+        }
+    }
+
+    // MARK: - Custom nav bar (matches PoofRootView chrome)
+
+    private var sheetNavBar: some View {
+        HStack {
+            Color.clear.frame(width: 34, height: 34)
+            Spacer()
+            Text("Pair a device")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.white)
+            Spacer()
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(Color.white.opacity(0.85))
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(Color.white.opacity(0.10)))
+                    .overlay(Circle().strokeBorder(Color.white.opacity(0.14), lineWidth: 0.6))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
+        .padding(.bottom, 6)
+    }
+
+    private var historyLink: some View {
+        Button {
+            PoofHaptics.tap()
+            showHistory = true
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.16), Color.white.opacity(0.06)],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                        )
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+                .frame(width: 36, height: 36)
+
+                Text("Activity history")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(Color.white.opacity(0.35))
+            }
+            .padding(.horizontal, 14).padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.white.opacity(0.05))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.6)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Limit banner
@@ -94,62 +147,88 @@ struct PairingSheet: View {
     private var pairingLimitBanner: some View {
         let count = session.peers.peers.count
         let limit = tier.maxPairedDevices ?? count
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(tier.accent)
-                Text("Device limit reached")
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(PoofTheme.textPrimary)
-                Spacer()
-                Text("\(count)/\(limit)")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(tier.accent)
-            }
-            Text("\(tier.displayName) allows \(tier.pairingLimitLabel). Upgrade for unlimited pairings, or unpair a device from the home screen.")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(PoofTheme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Button { showPricing = true } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 12, weight: .bold))
-                    Text("Upgrade")
-                        .font(.system(size: 14, weight: .semibold))
+        return sectionCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(tier.accent)
+                    Text("Device limit reached")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Text("\(count)/\(limit)")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(tier.accent)
                 }
-                .foregroundColor(.white)
-                .padding(.horizontal, 16).padding(.vertical, 10)
-                .background(
-                    Capsule().fill(
-                        LinearGradient(
-                            colors: [tier.accent, tier.glow],
-                            startPoint: .leading, endPoint: .trailing
+                Text(
+                    "\(tier.displayName) allows \(tier.pairingLimitLabel). Upgrade for unlimited pairings, or unpair a device from the home screen."
+                )
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(Color.white.opacity(0.65))
+                .fixedSize(horizontal: false, vertical: true)
+                Button { showPricing = true } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 12, weight: .bold))
+                        Text("Upgrade")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 18).padding(.vertical, 12)
+                    .background(
+                        Capsule().fill(
+                            LinearGradient(
+                                colors: [tier.accent, tier.glow],
+                                startPoint: .leading, endPoint: .trailing
+                            )
                         )
                     )
-                )
+                    .shadow(color: tier.accent.opacity(0.5), radius: 12, y: 6)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassCard(radius: PoofTheme.radiusMd)
-        .overlay(
-            RoundedRectangle(cornerRadius: PoofTheme.radiusMd)
-                .strokeBorder(tier.accent.opacity(0.4), lineWidth: 1)
-        )
     }
 
-    // MARK: - Add a device (QR + code + fallback)
+    // MARK: - Add a device (QR + code + fallback) — hero block
 
     private var addDeviceBlock: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Add a device")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(PoofTheme.textPrimary)
-            Text("Scan this QR from the other device, or type the code.")
-                .font(.system(size: 13))
-                .foregroundColor(PoofTheme.textSecondary)
+        sectionCard {
+            VStack(alignment: .leading, spacing: 14) {
+                sectionTitle("Add a device", subtitle: "Scan this QR from the other device, or type the code below.")
+
+                qrHero
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                digitsStrip
+                    .frame(maxWidth: .infinity, alignment: .center)
+
+                if session.pairCode != nil {
+                    Text("Or open \(hostURL()) on your phone")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(Color.white.opacity(0.55))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+
+                HStack(spacing: 10) {
+                    softPill(icon: "arrow.clockwise", label: "New code") {
+                        session.cancelPair()
+                        session.requestPairCode()
+                    }
+                    primaryPill(icon: "qrcode.viewfinder", label: "Scan QR") {
+                        showScanner = true
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    private var qrHero: some View {
+        ZStack {
+            AppleRadialGlow(color: PoofTheme.cyanGlow, intensity: 0.28)
+                .frame(width: 260, height: 260)
 
             let payload = pairURL()
             if let img = generateQR(payload) {
@@ -157,133 +236,118 @@ struct PairingSheet: View {
                     .interpolation(.none)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 220, height: 220)
-                    .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(.white))
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
-
-            HStack(spacing: 10) {
-                ForEach(codeDigits(), id: \.self) { d in
-                    Text(d)
-                        .font(.system(size: 26, weight: .bold, design: .monospaced))
-                        .foregroundColor(PoofTheme.textPrimary)
-                        .frame(width: 34, height: 44)
-                        .glassCard(radius: 10)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
-
-            if session.pairCode != nil {
-                Text("Or open \(hostURL()) on your phone")
-                    .font(.system(size: 12))
-                    .foregroundColor(PoofTheme.textTertiary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-            }
-
-            HStack(spacing: 10) {
-                Button {
-                    session.cancelPair()
-                    session.requestPairCode()
-                } label: {
-                    Label("New code", systemImage: "arrow.clockwise")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(PoofTheme.textPrimary)
-                        .padding(.horizontal, 14).padding(.vertical, 10)
-                        .glassCard()
-                }
-                Button {
-                    showScanner = true
-                } label: {
-                    Label("Scan QR", systemImage: "qrcode.viewfinder")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 14).padding(.vertical, 10)
-                        .background(Capsule().fill(PoofTheme.accent))
-                }
+                    .frame(width: 210, height: 210)
+                    .padding(14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(.white)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.24), lineWidth: 0.6)
+                    )
+                    .shadow(color: .black.opacity(0.35), radius: 14, y: 8)
             }
         }
     }
 
+    private var digitsStrip: some View {
+        HStack(spacing: 8) {
+            ForEach(Array(codeDigits().enumerated()), id: \.offset) { _, d in
+                Text(d)
+                    .font(.system(size: 24, weight: .bold, design: .monospaced))
+                    .foregroundColor(.white)
+                    .frame(width: 38, height: 48)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.14), Color.white.opacity(0.04)],
+                                    startPoint: .top, endPoint: .bottom
+                                )
+                            )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [Color.white.opacity(0.35), Color.white.opacity(0.06)],
+                                    startPoint: .top, endPoint: .bottom
+                                ),
+                                lineWidth: 0.7
+                            )
+                    )
+            }
+        }
+    }
+
+    // MARK: - Other blocks
+
     private var joinBlock: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Or type a code from another device")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(PoofTheme.textPrimary)
-            HStack(spacing: 8) {
-                TextField("ABCDEF", text: $joinCode)
-                    .font(.system(size: 18, weight: .semibold, design: .monospaced))
-                    .foregroundColor(PoofTheme.textPrimary)
-                    .textInputAutocapitalization(.characters)
-                    .autocorrectionDisabled()
-                    .padding(.horizontal, 14).padding(.vertical, 12)
-                    .glassCard()
-                Button("Pair") {
-                    let code = joinCode.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !code.isEmpty {
-                        session.joinWithCode(code)
-                        joinCode = ""
+        sectionCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionTitle("Or paste a code", subtitle: "From another device — 6 characters.")
+                HStack(spacing: 10) {
+                    inputField(
+                        text: $joinCode,
+                        placeholder: "ABCDEF",
+                        isMono: true,
+                        autocap: .characters
+                    )
+                    primaryPillCompact(label: "Pair") {
+                        let code = joinCode.uppercased()
+                            .trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !code.isEmpty {
+                            session.joinWithCode(code)
+                            joinCode = ""
+                        }
                     }
                 }
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.white)
-                .padding(.horizontal, 16).padding(.vertical, 12)
-                .background(Capsule().fill(PoofTheme.accent))
-            }
-            if let err = session.pairError {
-                Text(err).font(.system(size: 12)).foregroundColor(PoofTheme.danger)
+                if let err = session.pairError {
+                    Text(err)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(PoofTheme.danger)
+                }
             }
         }
     }
 
     private var renameBlock: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("This device")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(PoofTheme.textPrimary)
-            HStack(spacing: 8) {
-                TextField("Device name", text: $nameField)
-                    .font(.system(size: 15))
-                    .foregroundColor(PoofTheme.textPrimary)
-                    .padding(.horizontal, 14).padding(.vertical, 12)
-                    .glassCard()
-                Button("Rename") {
-                    PoofDeviceIdentity.name = nameField
+        sectionCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionTitle("This device", subtitle: "The name other devices will see.")
+                HStack(spacing: 10) {
+                    inputField(text: $nameField, placeholder: "Device name")
+                    primaryPillCompact(label: "Save") {
+                        PoofDeviceIdentity.name = nameField
+                    }
                 }
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.white)
-                .padding(.horizontal, 16).padding(.vertical, 12)
-                .background(Capsule().fill(PoofTheme.accent))
             }
         }
     }
 
     private var signalingBlock: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Signaling server")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(PoofTheme.textPrimary)
-            Text("URL of your Poof relay (e.g. http://192.168.1.42:3000).")
-                .font(.system(size: 12)).foregroundColor(PoofTheme.textTertiary)
-            HStack(spacing: 8) {
-                TextField("http://…", text: $signalingField)
-                    .font(.system(size: 13, design: .monospaced))
-                    .foregroundColor(PoofTheme.textPrimary)
-                    .keyboardType(.URL)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .padding(.horizontal, 14).padding(.vertical, 12)
-                    .glassCard()
-                Button("Save") {
-                    if let url = PoofOnboardingSheet.parseURL(signalingField) {
-                        session.updateSignalingURL(url)
-                        dismiss()
+        sectionCard {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionTitle(
+                    "Signaling server",
+                    subtitle: "URL of your Poof relay, e.g. http://192.168.1.42:3000."
+                )
+                HStack(spacing: 10) {
+                    inputField(
+                        text: $signalingField,
+                        placeholder: "http://…",
+                        isMono: true,
+                        autocap: .never,
+                        keyboard: .URL
+                    )
+                    primaryPillCompact(label: "Save") {
+                        if let url = PoofOnboardingSheet.parseURL(signalingField) {
+                            session.updateSignalingURL(url)
+                            dismiss()
+                        }
                     }
                 }
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.white)
-                .padding(.horizontal, 16).padding(.vertical, 12)
-                .background(Capsule().fill(PoofTheme.accent))
             }
         }
     }
@@ -291,26 +355,28 @@ struct PairingSheet: View {
     // MARK: - Debug
 
     private var debugBlock: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Debug")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(PoofTheme.textPrimary)
-            debugRow("This device", PoofDeviceIdentity.deviceId)
-            debugRow("Signaling", session.isSignalingConnected ? "connected" : "disconnected")
-            debugRow("Paired IDs", session.peers.ids.joined(separator: "\n") .ifEmpty("—"))
-            debugRow("Online IDs", Array(session.onlinePeerIds).joined(separator: "\n").ifEmpty("—"))
-            debugRow("Active peer", session.activePeerId ?? "—")
-            HStack {
-                Button {
-                    UIPasteboard.general.string = debugPayload()
-                } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(PoofTheme.textPrimary)
-                        .padding(.horizontal, 12).padding(.vertical, 8)
-                        .glassCard(radius: 12)
+        sectionCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    sectionTitle("Debug", subtitle: nil)
+                    Spacer()
+                    Button {
+                        UIPasteboard.general.string = debugPayload()
+                        PoofHaptics.tap()
+                    } label: {
+                        Label("Copy", systemImage: "doc.on.doc")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            .background(Capsule().fill(Color.white.opacity(0.10)))
+                            .overlay(Capsule().strokeBorder(Color.white.opacity(0.14), lineWidth: 0.6))
+                    }
                 }
-                Spacer()
+                debugRow("This device", PoofDeviceIdentity.deviceId)
+                debugRow("Signaling", session.isSignalingConnected ? "connected" : "disconnected")
+                debugRow("Paired IDs", session.peers.ids.joined(separator: "\n").ifEmpty("—"))
+                debugRow("Online IDs", Array(session.onlinePeerIds).joined(separator: "\n").ifEmpty("—"))
+                debugRow("Active peer", session.activePeerId ?? "—")
             }
         }
     }
@@ -319,14 +385,139 @@ struct PairingSheet: View {
         HStack(alignment: .top, spacing: 8) {
             Text(label)
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(PoofTheme.textTertiary)
+                .foregroundColor(Color.white.opacity(0.45))
                 .frame(width: 90, alignment: .leading)
             Text(value)
                 .font(.system(size: 11, design: .monospaced))
-                .foregroundColor(PoofTheme.textPrimary)
+                .foregroundColor(Color.white.opacity(0.85))
                 .textSelection(.enabled)
             Spacer()
         }
+    }
+
+    // MARK: - Shared building blocks
+
+    private func sectionCard(@ViewBuilder _ content: () -> some View) -> some View {
+        content()
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Color.white.opacity(0.05))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.6)
+            )
+            .appleRimHighlight(radius: 22, top: 0.22, mid: 0.03)
+    }
+
+    private func sectionTitle(_ title: String, subtitle: String?) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.white)
+            if let subtitle {
+                Text(subtitle)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(Color.white.opacity(0.55))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func inputField(
+        text: Binding<String>,
+        placeholder: String,
+        isMono: Bool = false,
+        autocap: TextInputAutocapitalization = .sentences,
+        keyboard: UIKeyboardType = .default
+    ) -> some View {
+        TextField(placeholder, text: text)
+            .font(isMono
+                ? .system(size: 15, weight: .semibold, design: .monospaced)
+                : .system(size: 15, weight: .semibold))
+            .foregroundColor(.white)
+            .autocorrectionDisabled()
+            .textInputAutocapitalization(autocap)
+            .keyboardType(keyboard)
+            .padding(.horizontal, 14).padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.10), lineWidth: 0.6)
+            )
+    }
+
+    private func primaryPill(icon: String, label: String, action: @escaping () -> Void) -> some View {
+        Button {
+            PoofHaptics.tap()
+            action()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon).font(.system(size: 13, weight: .semibold))
+                Text(label).font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 16).padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(
+                Capsule().fill(
+                    LinearGradient(
+                        colors: [PoofTheme.blueStart, PoofTheme.blueEnd],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+            )
+            .overlay(
+                Capsule().strokeBorder(Color.white.opacity(0.24), lineWidth: 0.6)
+            )
+            .shadow(color: PoofTheme.blueStart.opacity(0.45), radius: 12, y: 5)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func softPill(icon: String, label: String, action: @escaping () -> Void) -> some View {
+        Button {
+            PoofHaptics.tap()
+            action()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon).font(.system(size: 13, weight: .semibold))
+                Text(label).font(.system(size: 14, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 16).padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(Capsule().fill(Color.white.opacity(0.10)))
+            .overlay(Capsule().strokeBorder(Color.white.opacity(0.14), lineWidth: 0.6))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func primaryPillCompact(label: String, action: @escaping () -> Void) -> some View {
+        Button {
+            PoofHaptics.tap()
+            action()
+        } label: {
+            Text(label)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 18).padding(.vertical, 12)
+                .background(
+                    Capsule().fill(
+                        LinearGradient(
+                            colors: [PoofTheme.blueStart, PoofTheme.blueEnd],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                )
+                .shadow(color: PoofTheme.blueStart.opacity(0.45), radius: 10, y: 4)
+        }
+        .buttonStyle(.plain)
     }
 
     private func debugPayload() -> String {
@@ -377,8 +568,10 @@ struct PairingSheet: View {
     }
 }
 
-extension String {
-    fileprivate func ifEmpty(_ fallback: String) -> String { isEmpty ? fallback : self }
+private extension String {
+    func ifEmpty(_ fallback: String) -> String {
+        isEmpty ? fallback : self
+    }
 }
 
 // MARK: - QR Scanner
@@ -386,19 +579,25 @@ extension String {
 struct QRScannerView: UIViewControllerRepresentable {
     let onCode: (String) -> Void
 
-    func makeCoordinator() -> Coordinator { Coordinator(onCode: onCode) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onCode: onCode)
+    }
 
     func makeUIViewController(context: Context) -> QRScannerVC {
         let vc = QRScannerVC()
         vc.onCode = { code in context.coordinator.emit(code) }
         return vc
     }
-    func updateUIViewController(_ vc: QRScannerVC, context: Context) {}
+
+    func updateUIViewController(_: QRScannerVC, context _: Context) {}
 
     final class Coordinator {
         let onCode: (String) -> Void
         var fired = false
-        init(onCode: @escaping (String) -> Void) { self.onCode = onCode }
+        init(onCode: @escaping (String) -> Void) {
+            self.onCode = onCode
+        }
+
         func emit(_ c: String) {
             guard !fired else { return }
             fired = true
@@ -436,17 +635,23 @@ final class QRScannerVC: UIViewController, AVCaptureMetadataOutputObjectsDelegat
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        if !session.isRunning { DispatchQueue.global(qos: .userInitiated).async { self.session.startRunning() } }
+        if !session.isRunning {
+            DispatchQueue.global(qos: .userInitiated).async { self.session.startRunning() }
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        if session.isRunning { session.stopRunning() }
+        if session.isRunning {
+            session.stopRunning()
+        }
     }
 
-    func metadataOutput(_ output: AVCaptureMetadataOutput,
-                        didOutput metadataObjects: [AVMetadataObject],
-                        from connection: AVCaptureConnection) {
+    func metadataOutput(
+        _: AVCaptureMetadataOutput,
+        didOutput metadataObjects: [AVMetadataObject],
+        from _: AVCaptureConnection
+    ) {
         guard let obj = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
               let str = obj.stringValue else { return }
         onCode?(str)

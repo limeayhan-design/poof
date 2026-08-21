@@ -7,39 +7,59 @@ import UIKit
 
 struct TierSectionBusiness: View {
     @EnvironmentObject private var session: PoofSession
-    @State private var previewFeature: FeaturePreview?
+    @AppStorage(BusinessWorkspace.keyName) private var workspaceName: String = ""
+    @AppStorage(BusinessWorkspace.keyLogo) private var workspaceLogo: String = BusinessWorkspace.defaultLogo
+    @AppStorage(BusinessWorkspace.keyColor) private var workspaceColor: String = BusinessWorkspace.defaultColor
+
+    var onOpenWorkspace: () -> Void = {}
+    var onOpenAudit: () -> Void = {}
+    var onOpenTeam: () -> Void = {}
+    var onOpenBranding: () -> Void = {}
 
     private let memberColors: [Color] = [
         Color(red: 0.561, green: 0.639, blue: 0.710),
         Color(red: 0.357, green: 0.545, blue: 1.0),
         Color(red: 0.545, green: 0.494, blue: 1.0),
         Color(red: 0.247, green: 0.749, blue: 0.498),
-        Color(red: 1.0,   green: 0.478, blue: 0.612)
+        Color(red: 1.0, green: 0.478, blue: 0.612)
     ]
+
+    private var workspaceAccent: Color {
+        Color(hex: workspaceColor) ?? PoofTier.business.accent
+    }
 
     private func initials(from name: String) -> String {
         let parts = name.split(separator: " ").prefix(2)
-        let letters = parts.compactMap { $0.first }.map(String.init).joined()
+        let letters = parts.compactMap(\.first).map(String.init).joined()
         return letters.isEmpty ? String(name.prefix(2)).uppercased() : letters.uppercased()
     }
 
     private func role(for index: Int, total: Int) -> String {
-        if index == 0 { return "Admin" }
-        if index == total - 1 && total > 2 { return "Guest" }
+        if index == 0 {
+            return "Admin"
+        }
+        if index == total - 1, total > 2 {
+            return "Guest"
+        }
         return "Member"
     }
 
     private func relative(_ date: Date) -> String {
         let s = -Int(date.timeIntervalSinceNow)
-        if s < 60 { return "just now" }
-        if s < 3600 { return "\(s / 60)m ago" }
-        if s < 86400 { return "\(s / 3600)h ago" }
+        if s < 60 {
+            return "just now"
+        }
+        if s < 3600 {
+            return "\(s / 60)m ago"
+        }
+        if s < 86400 {
+            return "\(s / 3600)h ago"
+        }
         return "\(s / 86400)d ago"
     }
 
-    private var workspaceName: String {
-        let device = UIDevice.current.name
-        return "\(device)'s workspace"
+    private var displayWorkspaceName: String {
+        workspaceName.isEmpty ? "\(UIDevice.current.name)'s workspace" : workspaceName
     }
 
     var body: some View {
@@ -74,42 +94,31 @@ struct TierSectionBusiness: View {
 
             brandingCard(accent: accent)
         }
-        .sheet(item: $previewFeature) { FeaturePreviewSheet(preview: $0) }
     }
 
-    private func orgHeader(accent: Color, glow: Color, memberCount: Int) -> some View {
+    private func orgHeader(accent _: Color, glow _: Color, memberCount: Int) -> some View {
         Button {
-            previewFeature = FeaturePreview(
-                icon: "building.2.fill",
-                title: "Workspace",
-                tagline: "Rename, invite, and manage",
-                status: .comingSoon,
-                description: "Create a shared organization name, invite teammates by email or link, and assign roles. All transfers stay peer-to-peer — the workspace is just identity.",
-                accent: accent
-            )
+            onOpenWorkspace()
         } label: {
             HStack(spacing: 12) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(
                             LinearGradient(
-                                colors: [accent, glow],
+                                colors: [workspaceAccent, workspaceAccent.opacity(0.7)],
                                 startPoint: .topLeading, endPoint: .bottomTrailing
                             )
                         )
                         .frame(width: 40, height: 40)
-                    Text("P")
-                        .font(.system(size: 20, weight: .heavy, design: .rounded))
+                    Text(workspaceLogo)
+                        .font(.system(size: 18, weight: .heavy, design: .rounded))
                         .foregroundColor(.white)
                 }
                 VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: 5) {
-                        Text(workspaceName)
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(PoofTheme.textPrimary)
-                            .lineLimit(1)
-                        PreviewPill(accent: accent)
-                    }
+                    Text(displayWorkspaceName)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(PoofTheme.textPrimary)
+                        .lineLimit(1)
                     Text("\(memberCount) member\(memberCount == 1 ? "" : "s") · Enterprise plan")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(PoofTheme.textTertiary)
@@ -173,16 +182,7 @@ struct TierSectionBusiness: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard(radius: PoofTheme.radiusMd)
         .contentShape(Rectangle())
-        .onTapGesture {
-            previewFeature = FeaturePreview(
-                icon: "doc.text.magnifyingglass",
-                title: "Live audit",
-                tagline: "Every transfer, every device, real time",
-                status: session.receivedFiles.isEmpty ? .available : .available,
-                description: "Track file sends, receives, and device pairings across your team as they happen. Export to CSV for compliance. On-device — nothing shared with us.",
-                accent: accent
-            )
-        }
+        .onTapGesture { onOpenAudit() }
     }
 
     private func teamStrip(peers: [PairedPeer], accent: Color) -> some View {
@@ -193,14 +193,7 @@ struct TierSectionBusiness: View {
                     .foregroundColor(PoofTheme.textPrimary)
                 Spacer()
                 Button {
-                    previewFeature = FeaturePreview(
-                        icon: "person.2.fill",
-                        title: "Team management",
-                        tagline: "Invite, revoke, assign roles",
-                        status: .comingSoon,
-                        description: "Bulk invite by email, set per-user roles (Admin/Member/Guest), revoke access instantly. All identity flows through your workspace.",
-                        accent: accent
-                    )
+                    onOpenTeam()
                 } label: {
                     Text("Manage")
                         .font(.system(size: 11, weight: .semibold))
@@ -274,33 +267,24 @@ struct TierSectionBusiness: View {
         .frame(width: 60)
     }
 
-    private func brandingCard(accent: Color) -> some View {
+    private func brandingCard(accent _: Color) -> some View {
         Button {
-            previewFeature = FeaturePreview(
-                icon: "paintpalette.fill",
-                title: "Custom branding",
-                tagline: "Your logo, your colors, your domain",
-                status: .comingSoon,
-                description: "White-label the send/receive UI with your company logo and colors. Route transfers through your own custom domain. Enterprise-only.",
-                accent: accent
-            )
+            onOpenBranding()
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "paintpalette.fill")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(accent)
+                    .foregroundColor(workspaceAccent)
                     .frame(width: 32, height: 32)
-                    .background(Circle().fill(accent.opacity(0.14)))
+                    .background(Circle().fill(workspaceAccent.opacity(0.16)))
                 VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: 5) {
-                        Text("Custom branding")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(PoofTheme.textPrimary)
-                        PreviewPill(accent: accent)
-                    }
-                    Text("Your logo · your colors · your domain")
-                        .font(.system(size: 10, weight: .medium))
+                    Text("Custom branding")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(PoofTheme.textPrimary)
+                    Text("Logo · \(workspaceLogo) · color · \(workspaceColor.uppercased())")
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
                         .foregroundColor(PoofTheme.textTertiary)
+                        .lineLimit(1)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")

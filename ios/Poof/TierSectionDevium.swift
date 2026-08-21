@@ -7,16 +7,12 @@ import UIKit
 
 struct TierSectionDevium: View {
     @EnvironmentObject private var session: PoofSession
-    @State private var airGapped = false
+    @AppStorage(AirGap.keyEnabled) private var airGapped: Bool = false
     @State private var previewFeature: FeaturePreview?
+    @State private var showDebugConsole = false
+    @State private var showSelfHost = false
 
-    private var cliCommand: String {
-        if let peer = session.peers.peers.first {
-            let slug = peer.name.lowercased().replacingOccurrences(of: " ", with: "-")
-            return "poof send report.zip \(slug)"
-        }
-        return "poof send report.zip <peer>"
-    }
+    var onMultiDrop: () -> Void = {}
 
     var body: some View {
         let accent = PoofTier.devium.accent
@@ -38,38 +34,46 @@ struct TierSectionDevium: View {
 
             multiDropCard(peers: peers, accent: accent)
 
-            cliCard(accent: accent)
+            debugConsoleCard(accent: accent)
 
-            apiKeyCard(accent: accent)
+            selfHostCard(accent: accent)
 
             airGapCard(accent: accent)
         }
         .sheet(item: $previewFeature) { FeaturePreviewSheet(preview: $0) }
+        .sheet(isPresented: $showDebugConsole) {
+            DebugConsoleSheet().environmentObject(session)
+        }
+        .sheet(isPresented: $showSelfHost) {
+            SelfHostSignalingSheet().environmentObject(session)
+        }
     }
 
     private func multiDropCard(peers: [PairedPeer], accent: Color) -> some View {
-        Button {
-            previewFeature = FeaturePreview(
-                icon: "square.grid.2x2.fill",
-                title: "Multi-Drop",
-                tagline: "Broadcast a file to N devices at once",
-                status: peers.isEmpty ? .available : .preview,
-                description: peers.isEmpty
-                    ? "Pair a few devices from the gear menu, then send one file to all of them in a single tap. WebRTC peer-to-peer, no cloud relay."
-                    : "You have \(peers.count) paired device\(peers.count == 1 ? "" : "s") ready. Multi-Drop broadcasts your next transfer to all of them in parallel. Rolling out.",
-                accent: accent
-            )
+        let onlineCount = peers.filter { session.isPeerOnline($0.id) }.count
+        return Button {
+            if peers.isEmpty {
+                previewFeature = FeaturePreview(
+                    icon: "square.grid.2x2.fill",
+                    title: "Multi-Drop",
+                    tagline: "Broadcast a file to N devices at once",
+                    status: .available,
+                    description: "Pair a few devices from the gear menu, then send one file to all of them in a single tap. WebRTC peer-to-peer, no cloud relay.",
+                    accent: accent
+                )
+            } else {
+                onMultiDrop()
+            }
         } label: {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    HStack(spacing: 5) {
-                        Text("Multi-Drop")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(PoofTheme.textPrimary)
-                        PreviewPill(accent: accent)
-                    }
+                    Text("Multi-Drop")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(PoofTheme.textPrimary)
                     Spacer()
-                    Text(peers.isEmpty ? "No devices paired" : "Broadcast to \(peers.count) device\(peers.count == 1 ? "" : "s")")
+                    Text(peers.isEmpty
+                        ? "No devices paired"
+                        : "Broadcast to \(onlineCount)/\(peers.count) online")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(PoofTheme.textTertiary)
                 }
@@ -119,88 +123,67 @@ struct TierSectionDevium: View {
         .buttonStyle(.plain)
     }
 
-    private func cliCard(accent: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Circle().fill(Color(red: 1.0, green: 0.361, blue: 0.322)).frame(width: 8, height: 8)
-                Circle().fill(Color(red: 1.0, green: 0.749, blue: 0.235)).frame(width: 8, height: 8)
-                Circle().fill(Color(red: 0.239, green: 0.816, blue: 0.404)).frame(width: 8, height: 8)
-                Spacer()
-                Text("CLI · Preview")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(PoofTheme.textTertiary)
-            }
-            HStack(alignment: .top, spacing: 8) {
-                Text("$")
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
-                    .foregroundColor(accent)
-                Text(cliCommand)
-                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                    .foregroundColor(PoofTheme.textPrimary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                Spacer()
-                Button {
-                    UIPasteboard.general.string = cliCommand
-                    session.toast = "Command copied"
-                } label: {
-                    Image(systemName: "doc.on.doc")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(PoofTheme.textSecondary)
+    private func debugConsoleCard(accent: Color) -> some View {
+        Button {
+            showDebugConsole = true
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Circle().fill(Color(red: 1.0, green: 0.361, blue: 0.322)).frame(width: 8, height: 8)
+                    Circle().fill(Color(red: 1.0, green: 0.749, blue: 0.235)).frame(width: 8, height: 8)
+                    Circle().fill(Color(red: 0.239, green: 0.816, blue: 0.404)).frame(width: 8, height: 8)
+                    Spacer()
+                    Text("Debug console")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(PoofTheme.textTertiary)
                 }
-                .buttonStyle(.plain)
+                HStack(alignment: .center, spacing: 8) {
+                    Circle().fill(session.isRTCConnected ? PoofTheme.green : PoofTheme.textTertiary)
+                        .frame(width: 6, height: 6)
+                    Text(session.connectionState)
+                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                        .foregroundColor(PoofTheme.textPrimary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer()
+                    Text("\(session.onlinePeerIds.count) online")
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundColor(accent)
+                }
             }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: PoofTheme.radiusMd, style: .continuous)
-                .fill(Color.black.opacity(0.35))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: PoofTheme.radiusMd)
-                .strokeBorder(accent.opacity(0.35), lineWidth: 1)
-        )
-        .contentShape(Rectangle())
-        .onTapGesture {
-            previewFeature = FeaturePreview(
-                icon: "terminal.fill",
-                title: "Poof CLI",
-                tagline: "Scriptable transfers from your terminal",
-                status: .comingSoon,
-                description: "`poof send`, `poof pair`, `poof receive`. Ship files from CI jobs, cron tasks, or your build pipeline. Same E2E encryption, zero cloud.",
-                accent: accent
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: PoofTheme.radiusMd, style: .continuous)
+                    .fill(Color.black.opacity(0.35))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: PoofTheme.radiusMd)
+                    .strokeBorder(accent.opacity(0.35), lineWidth: 1)
             )
         }
+        .buttonStyle(.plain)
     }
 
-    private func apiKeyCard(accent: Color) -> some View {
+    private func selfHostCard(accent: Color) -> some View {
         Button {
-            previewFeature = FeaturePreview(
-                icon: "key.fill",
-                title: "API key",
-                tagline: "Programmatic access to Poof transfers",
-                status: .comingSoon,
-                description: "Generate keys for scripts, servers, and integrations. Rate-limited, revocable, scoped. Everything stays peer-to-peer — the key just authenticates you.",
-                accent: accent
-            )
+            showSelfHost = true
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: "key.fill")
+                Image(systemName: "server.rack")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(accent)
                     .frame(width: 32, height: 32)
                     .background(Circle().fill(accent.opacity(0.16)))
                 VStack(alignment: .leading, spacing: 1) {
-                    HStack(spacing: 5) {
-                        Text("API key")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(PoofTheme.textPrimary)
-                        PreviewPill(accent: accent)
-                    }
-                    Text("pk_live_••••••4d92")
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    Text("Self-hosted signaling")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(PoofTheme.textPrimary)
+                    Text(PoofSession.signalingURL.absoluteString)
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
                         .foregroundColor(PoofTheme.textTertiary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
@@ -215,41 +198,33 @@ struct TierSectionDevium: View {
     }
 
     private func airGapCard(accent: Color) -> some View {
-        HStack(spacing: 12) {
+        let signalingIsLAN = AirGap.isLAN(PoofSession.signalingURL)
+        return HStack(spacing: 12) {
             Image(systemName: airGapped ? "airplane" : "wifi")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(airGapped ? accent : PoofTheme.textSecondary)
                 .frame(width: 32, height: 32)
                 .background(Circle().fill((airGapped ? accent : Color.white).opacity(0.12)))
             VStack(alignment: .leading, spacing: 1) {
-                HStack(spacing: 5) {
-                    Text("Air-gapped mode")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(PoofTheme.textPrimary)
-                    PreviewPill(accent: accent)
-                }
-                Text(airGapped ? "LAN only · no internet" : "Internet enabled")
+                Text("Air-gapped mode")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(PoofTheme.textPrimary)
+                Text(airGapped
+                    ? (signalingIsLAN ? "LAN only · no internet" : "LAN only · signaling server is not LAN")
+                    : "Internet enabled")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(PoofTheme.textTertiary)
+                    .foregroundColor(airGapped && !signalingIsLAN ? PoofTheme.accent2 : PoofTheme.textTertiary)
             }
             Spacer()
             Toggle("", isOn: $airGapped)
                 .labelsHidden()
                 .tint(accent)
+                .onChange(of: airGapped) { _, on in
+                    session.applyAirGap(on)
+                }
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassCard(radius: PoofTheme.radiusMd)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            previewFeature = FeaturePreview(
-                icon: "airplane",
-                title: "Air-gapped mode",
-                tagline: "LAN-only transfers, zero internet",
-                status: .comingSoon,
-                description: "Force every transfer through your local network — no signaling server, no STUN, no cloud metadata. Perfect for sensitive environments.",
-                accent: accent
-            )
-        }
     }
 }

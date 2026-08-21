@@ -6,6 +6,7 @@ import SwiftUI
 struct RemoteFilesSheet: View {
     @EnvironmentObject var session: PoofSession
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(PoofTier.storageKey) private var tierRaw: String = PoofTier.free.rawValue
 
     @State private var path: String = ""
     @State private var entries: [RemoteEntry] = []
@@ -13,11 +14,24 @@ struct RemoteFilesSheet: View {
     @State private var lastRequestId: String?
     @State private var errorText: String?
 
+    private var tier: PoofTier {
+        PoofTier(rawValue: tierRaw) ?? .free
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 PoofBackground()
-                content
+                if !tier.canUseRemoteFiles {
+                    PaywallLockedView(
+                        icon: "folder.badge.person.crop",
+                        title: "Remote Files is a Premium feature",
+                        subtitle: "Browse and pull files from your other paired devices, right from your iPhone.",
+                        dismissOnTap: { dismiss() }
+                    )
+                } else {
+                    content
+                }
             }
             .navigationTitle("Remote Files")
             .navigationBarTitleDisplayMode(.inline)
@@ -37,12 +51,13 @@ struct RemoteFilesSheet: View {
                 }
             }
             .onAppear {
+                guard tier.canUseRemoteFiles else { return }
                 session.remote.onListReceived = { requestId, receivedPath, list in
                     Task { @MainActor in
-                        guard requestId == self.lastRequestId else { return }
-                        self.path = receivedPath
-                        self.entries = list
-                        self.loading = false
+                        guard requestId == lastRequestId else { return }
+                        path = receivedPath
+                        entries = list
+                        loading = false
                     }
                 }
                 refresh()
@@ -59,7 +74,7 @@ struct RemoteFilesSheet: View {
     private var content: some View {
         if !session.isRTCConnected {
             offlineState
-        } else if loading && entries.isEmpty {
+        } else if loading, entries.isEmpty {
             loadingState
         } else if entries.isEmpty {
             emptyState
@@ -146,8 +161,11 @@ struct RemoteFilesSheet: View {
 
     private func row(for entry: RemoteEntry) -> some View {
         Button {
-            if entry.isDir { navigate(into: entry.name) }
-            else { pull(entry) }
+            if entry.isDir {
+                navigate(into: entry.name)
+            } else {
+                pull(entry)
+            }
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: entry.isDir ? "folder.fill" : "doc.fill")
@@ -185,7 +203,9 @@ struct RemoteFilesSheet: View {
 
     private func navigateUp() {
         var comps = path.split(separator: "/")
-        if !comps.isEmpty { comps.removeLast() }
+        if !comps.isEmpty {
+            comps.removeLast()
+        }
         path = comps.joined(separator: "/")
         refresh()
     }
