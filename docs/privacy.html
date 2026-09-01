@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Politique de confidentialité — Poof</title>
+  <meta name="description" content="Politique de confidentialité de l'application Poof — données collectées, utilisation, rétention, droits RGPD." />
+  <meta name="theme-color" content="#005EFF" />
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      background: linear-gradient(180deg, #005EFF 0%, #3F73C4 45%, #797979 100%);
+      background-attachment: fixed;
+      color: #fff;
+      -webkit-font-smoothing: antialiased;
+      padding: 40px 20px 60px;
+      min-height: 100dvh;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      border: 0.6px solid rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      padding: 40px 30px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+    }
+    .back { display: inline-flex; align-items: center; gap: 6px; color: rgba(255, 255, 255, 0.65); font-size: 13px; font-weight: 600; text-decoration: none; margin-bottom: 24px; }
+    .back:hover { color: #fff; }
+    h1 { font-size: 32px; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .last-updated { font-size: 12px; color: rgba(255, 255, 255, 0.55); margin-bottom: 32px; }
+    h2 { font-size: 18px; font-weight: 800; margin: 28px 0 10px; color: #fff; }
+    h3 { font-size: 14px; font-weight: 700; margin: 16px 0 6px; color: rgba(255, 255, 255, 0.92); }
+    p, li { font-size: 14px; font-weight: 500; line-height: 1.65; color: rgba(255, 255, 255, 0.85); margin-bottom: 10px; }
+    ul { padding-left: 22px; }
+    li { margin-bottom: 6px; }
+    strong { color: #fff; font-weight: 700; }
+    a { color: #0AE2FF; text-decoration: underline; text-underline-offset: 3px; }
+    .highlight {
+      background: rgba(255, 255, 255, 0.10);
+      border-left: 3px solid #0AE2FF;
+      padding: 12px 14px;
+      border-radius: 6px;
+      margin: 14px 0;
+      font-size: 13px;
+    }
+    .contact { margin-top: 30px; padding: 16px; background: rgba(255, 255, 255, 0.06); border-radius: 14px; border: 0.6px solid rgba(255, 255, 255, 0.12); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a class="back" href="/">← Retour à Poof</a>
+    <h1>Politique de confidentialité</h1>
+    <p class="last-updated">Dernière mise à jour : 19 août 2026</p>
+
+    <div class="highlight">
+      <strong>En résumé.</strong> Poof est conçu pour minimiser la collecte de données. Aucun compte n'est requis pour utiliser l'app. Les fichiers que vous envoyez transitent chiffrés par notre serveur et sont supprimés automatiquement après réception ou 1 heure maximum. Nous ne vendons aucune donnée.
+    </div>
+
+    <h2>1. Qui sommes-nous ?</h2>
+    <p>Poof (« l'app », « le service ») est développé par Uras (« nous »). Cette politique décrit quelles données personnelles sont collectées quand vous utilisez l'app Poof sur iPhone, iPad ou Mac, ainsi que la webapp accessible depuis notre site.</p>
+
+    <h2>2. Données que nous collectons</h2>
+
+    <h3>2.1 Créées automatiquement par l'app</h3>
+    <ul>
+      <li><strong>Identifiant local de l'appareil</strong> — un UUID généré aléatoirement au premier lancement, stocké uniquement sur votre appareil et transmis à notre serveur pour établir les connexions entre vos appareils appairés. Cet identifiant n'est PAS l'identifiant Apple (IDFA / IDFV) de votre appareil.</li>
+      <li><strong>Nom de l'appareil</strong> — le nom que vous avez donné à votre iPhone/Mac dans les Réglages système (ex. « iPhone de Uras »), utilisé pour l'affichage lors du pairing.</li>
+      <li><strong>Token Apple Push Notifications (APNS)</strong> — un identifiant fourni par Apple qui permet de vous envoyer des notifications quand un fichier ou message clipboard arrive. Stocké chiffré sur notre serveur, jamais partagé avec un tiers.</li>
+    </ul>
+
+    <h3>2.2 Fournies volontairement</h3>
+    <ul>
+      <li><strong>Sign in with Apple (optionnel)</strong> — si vous choisissez de vous connecter avec votre Apple ID pour synchroniser votre profil entre vos appareils, nous recevons votre identifiant Apple anonyme, votre email (relayé Apple ou réel selon votre choix), et éventuellement votre nom.</li>
+      <li><strong>Photo de profil</strong> — si vous en choisissez une, elle est stockée sur votre appareil et synchronisée avec vos autres appareils du même compte iCloud via notre serveur (compressée en JPEG < 500 KB).</li>
+      <li><strong>Contenu envoyé</strong> — fichiers, photos, textes du presse-papiers que vous transférez à vos appareils appairés.</li>
+    </ul>
+
+    <h2>3. Comment nous utilisons ces données</h2>
+    <ul>
+      <li>Fournir le service de transfert entre vos appareils</li>
+      <li>Vous notifier via Apple Push quand un contenu arrive</li>
+      <li>Synchroniser votre profil (photo, nom) entre vos appareils du même compte iCloud</li>
+      <li>Détecter et prévenir les abus (rate limiting, protection anti-spam)</li>
+    </ul>
+    <p>Nous n'utilisons <strong>jamais</strong> ces données à des fins publicitaires, analytiques comportementales, ou de vente à des tiers.</p>
+
+    <h2>4. Stockage et rétention</h2>
+
+    <h3>Fichiers et messages transférés</h3>
+    <p>Les fichiers et messages que vous envoyez transitent par notre serveur <strong>en mémoire (RAM)</strong>, jamais persistés sur disque. Ils sont supprimés :</p>
+    <ul>
+      <li><strong>Immédiatement après téléchargement</strong> par le destinataire</li>
+      <li>OU au bout de <strong>1 heure maximum</strong> (TTL) si non téléchargés</li>
+    </ul>
+    <p>Aucune copie n'est conservée par nous après ce délai.</p>
+
+    <h3>Métadonnées de compte</h3>
+    <p>Votre identifiant local, token APNS, et profil (photo, nom) sont conservés tant que votre app reste installée. Vous pouvez tout supprimer en désinstallant l'app.</p>
+
+    <h2>5. Chiffrement et sécurité</h2>
+    <ul>
+      <li><strong>Transport</strong> — toutes les connexions entre l'app et notre serveur utilisent HTTPS/TLS 1.3.</li>
+      <li><strong>Fichiers Secure (Premium)</strong> — chiffrement AES-256 de bout-en-bout : la clé n'est jamais transmise à notre serveur, seuls vos appareils appairés peuvent déchiffrer.</li>
+      <li><strong>Serveur</strong> — hébergé chez Render (États-Unis / Union Européenne selon la région), accès restreint, mots de passe hachés.</li>
+    </ul>
+
+    <h2>6. Partage avec des tiers</h2>
+    <p>Nous partageons certaines données avec les services suivants, strictement nécessaires au fonctionnement du service :</p>
+    <ul>
+      <li><strong>Apple Push Notification Service (APNS)</strong> — pour vous envoyer des notifications. Voir la <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener">politique de confidentialité Apple</a>.</li>
+      <li><strong>Render.com</strong> — hébergement de notre serveur signaling.</li>
+      <li><strong>Cloudflare</strong> — hébergement de notre site web (getpoof / poof-6ez.pages.dev).</li>
+      <li><strong>Stripe (optionnel)</strong> — si vous choisissez de soutenir le développement via le programme « Founder » sur notre site web, Stripe traite votre paiement. Voir la <a href="https://stripe.com/privacy" target="_blank" rel="noopener">politique de confidentialité Stripe</a>.</li>
+    </ul>
+    <p>Nous ne vendons, louons, ni échangeons aucune donnée avec des courtiers en données, réseaux publicitaires ou plateformes d'analyse.</p>
+
+    <h2>7. Vos droits (RGPD / CCPA)</h2>
+    <p>Vous disposez des droits suivants sur vos données personnelles :</p>
+    <ul>
+      <li><strong>Accès</strong> — obtenir une copie des données que nous détenons sur vous</li>
+      <li><strong>Rectification</strong> — corriger toute donnée inexacte</li>
+      <li><strong>Effacement</strong> — supprimer toutes vos données (désinstaller l'app suffit ; contactez-nous pour supprimer les données serveur si vous êtes signé avec Sign in with Apple)</li>
+      <li><strong>Portabilité</strong> — recevoir vos données dans un format lisible par machine</li>
+      <li><strong>Opposition</strong> — refuser certains traitements</li>
+      <li><strong>Réclamation</strong> — déposer plainte auprès d'une autorité de contrôle (en France : CNIL)</li>
+    </ul>
+    <p>Pour exercer ces droits, contactez-nous à l'adresse ci-dessous.</p>
+
+    <h2>8. Cookies et tracking</h2>
+    <p>L'app iOS/Mac n'utilise <strong>aucun cookie ni tracker publicitaire</strong>. Notre site web (poof-6ez.pages.dev) utilise uniquement des cookies techniques strictement nécessaires (session Cloudflare, panier Stripe si vous cliquez sur le lien Founder).</p>
+
+    <h2>9. Modifications</h2>
+    <p>Nous pouvons mettre à jour cette politique pour refléter des changements techniques ou légaux. La date « Dernière mise à jour » en haut du document indique la version en vigueur. Les changements majeurs seront notifiés dans l'app.</p>
+
+    <div class="contact">
+      <h3 style="margin-top: 0;">Contact</h3>
+      <p style="margin-bottom: 0;">Pour toute question ou pour exercer vos droits : <strong>Limeayhan@icloud.com</strong></p>
+    </div>
+  </div>
+</body>
+</html>
