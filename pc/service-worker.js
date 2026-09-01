@@ -3,7 +3,7 @@
 // Bump CACHE_VERSION quand tu modifies mobile.html, manifest ou icônes pour
 // forcer les clients installés à recharger le shell (le vieux cache est purgé
 // dans `activate`).
-const CACHE_VERSION = 'poof-shell-v4';
+const CACHE_VERSION = 'poof-shell-v5';
 
 // App shell = tout ce qu'il faut pour ouvrir mobile.html rapidement.
 // Les JS métier (mobile.js + modules ES + vendor) sont cachés aussi pour

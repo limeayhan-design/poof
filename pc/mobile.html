@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>Poof</title>
-  <meta name="description" content="Envoie fichiers, photos et presse-papiers entre tes appareils." />
-  <meta name="theme-color" content="#005EFF" />
+  <meta name="description" content="Envoie fichiers, photos et presse-papiers entre tes appareils. Chiffré bout en bout." />
+  <meta name="theme-color" content="#0033FF" />
   <meta name="color-scheme" content="dark" />
   <link rel="manifest" href="./manifest.json" />
   <link rel="icon" href="./icons/icon-192.png" />
@@ -17,22 +17,45 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="application-name" content="Poof" />
   <meta property="og:title" content="Poof — Send Anywhere" />
-  <meta property="og:description" content="Envoie fichiers, photos et presse-papiers entre tes appareils. Chiffré bout en bout." />
+  <meta property="og:description" content="Envoie fichiers, photos et presse-papiers entre tes appareils." />
   <meta property="og:image" content="./icons/icon-512.png" />
   <meta property="og:type" content="website" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
   <style>
+    /* ============================================================
+       Tokens
+       ============================================================ */
+    :root {
+      --brand-1: #00A3FF;
+      --brand-2: #0033FF;
+      --brand-deep: #001A80;
+      --bg-top: #001B4D;
+      --bg-mid: #0A1F5C;
+      --bg-bottom: #030814;
+      --success: #34D399;
+      --danger:  #F87171;
+      --glass-fill: rgba(255, 255, 255, 0.06);
+      --glass-border: rgba(255, 255, 255, 0.14);
+      --glass-strong: rgba(255, 255, 255, 0.10);
+      --text: #ffffff;
+      --text-dim: rgba(255, 255, 255, 0.62);
+      --spring: cubic-bezier(0.16, 1, 0.3, 1);
+      --spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; width: 100%; overflow-x: hidden; overscroll-behavior: none; }
     body {
       min-height: 100dvh;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       font-weight: 500;
-      color: #fff;
+      color: var(--text);
       -webkit-font-smoothing: antialiased;
-      background: linear-gradient(180deg, #005EFF 0%, #3F73C4 45%, #797979 100%);
+      background: radial-gradient(ellipse at top, var(--bg-top) 0%, var(--bg-mid) 40%, var(--bg-bottom) 100%);
       background-attachment: fixed;
       padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
       display: flex;
@@ -40,463 +63,719 @@
       align-items: center;
       position: relative;
     }
+
+    /* ============================================================
+       Décors globaux (aurora + grain)
+       ============================================================ */
+    .aurora {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+    }
+    .aurora::before, .aurora::after {
+      content: ''; position: absolute; border-radius: 50%;
+      filter: blur(80px); opacity: 0.55;
+      animation: aurora-drift 18s ease-in-out infinite alternate;
+    }
+    .aurora::before {
+      width: 60vw; height: 60vw; top: -15vw; left: -10vw;
+      background: radial-gradient(circle at center, #0060FF 0%, transparent 65%);
+    }
+    .aurora::after {
+      width: 55vw; height: 55vw; bottom: -20vw; right: -15vw;
+      background: radial-gradient(circle at center, #00E0FF 0%, transparent 65%);
+      opacity: 0.30; animation-delay: -9s;
+    }
+    @keyframes aurora-drift {
+      0%   { transform: translate(0, 0)     scale(1); }
+      100% { transform: translate(6vw, 4vw) scale(1.15); }
+    }
     .noise {
-      position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.06;
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.05;
       background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-      background-size: 260px 260px;
+      background-size: 240px 240px;
     }
-    .content { position: relative; z-index: 1; width: 100%; max-width: 430px; padding: 20px 20px 96px; display: flex; flex-direction: column; align-items: center; }
 
-    /* Header */
-    .header { width: 100%; display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
-    .wordmark-row { display: flex; align-items: flex-start; gap: 8px; }
-    .wordmark { font-size: 34px; font-weight: 900; line-height: 1; color: #fff; text-shadow: 0 4px 8px rgba(0, 0, 0, 0.20); }
+    /* ============================================================
+       App shell
+       ============================================================ */
+    .app {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 440px;
+      min-height: 100dvh;
+      padding: 12px 20px calc(120px + env(safe-area-inset-bottom));
+      display: flex; flex-direction: column;
+    }
+
+    /* ============================================================
+       Header
+       ============================================================ */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 4px 20px;
+    }
+    .brand { display: flex; align-items: baseline; gap: 8px; }
+    .wordmark { font-size: 36px; font-weight: 900; letter-spacing: -0.02em; text-shadow: 0 4px 16px rgba(0, 60, 255, 0.35); }
     .beta-pill {
-      font-size: 10px; font-weight: 700; color: rgba(255, 255, 255, 0.72);
+      font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.72);
       padding: 3px 8px; border-radius: 999px;
-      background: rgba(255, 255, 255, 0.12);
-      border: 0.6px solid rgba(255, 255, 255, 0.24);
-      margin-top: -2px;
-    }
-    .cloud-btn {
-      background: none; border: none; padding: 0; cursor: pointer;
-      color: #fff;
-      filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.22));
-    }
-    .cloud-btn svg { display: block; }
-
-    /* HeroPhoto backdrop (nuage décoratif en bas comme app) */
-    .hero-backdrop {
-      position: fixed; bottom: -40px; left: 50%; transform: translateX(-50%);
-      width: 600px; max-width: 130vw; height: 320px; z-index: 0; opacity: 0.30;
-      background: radial-gradient(ellipse at center bottom, rgba(255,255,255,0.55) 0%, transparent 65%);
-      pointer-events: none;
-    }
-
-    /* Chips row 1 (photo / doc / clipboard) — au-dessus du rectangle */
-    .chips-row {
-      display: flex; gap: 12px; justify-content: center; margin-top: 34px; margin-bottom: 14px;
-    }
-    .chip {
-      width: 70px; height: 70px;
-      border-radius: 22px;
       background: rgba(255, 255, 255, 0.10);
-      backdrop-filter: blur(24px) saturate(140%);
-      -webkit-backdrop-filter: blur(24px) saturate(140%);
-      border: 0.6px solid rgba(255, 255, 255, 0.22);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.14);
-      display: grid; place-items: center;
-      cursor: pointer;
-      transition: transform 0.15s ease;
+      border: 0.5px solid rgba(255, 255, 255, 0.22);
     }
-    .chip:active { transform: scale(0.95); }
-    .chip svg { width: 24px; height: 24px; fill: #fff; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.20)); }
+    .icon-btn {
+      width: 42px; height: 42px; border-radius: 999px;
+      background: var(--glass-fill); border: 0.6px solid var(--glass-border);
+      color: var(--text); display: grid; place-items: center;
+      cursor: pointer; transition: transform 0.15s var(--spring), background 0.2s;
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+    }
+    .icon-btn:active { transform: scale(0.94); background: rgba(255, 255, 255, 0.14); }
 
-    /* Rectangle glass central — upsell Premium (miroir PremiumUpsellBar app) */
-    .teaser-bar {
-      width: 100%; max-width: 320px;
-      padding: 14px 18px;
-      border-radius: 24px;
-      background: rgba(255, 255, 255, 0.10);
-      backdrop-filter: blur(24px) saturate(140%);
-      -webkit-backdrop-filter: blur(24px) saturate(140%);
-      border: 0.8px solid rgba(255, 255, 255, 0.22);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.14);
-      display: flex; align-items: center; gap: 14px;
-      margin-bottom: 20px;
-    }
-    .teaser-bar-icon { width: 40px; display: grid; place-items: center; color: #fff; filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.35)); }
-    .teaser-bar-text { flex: 1; display: flex; flex-direction: column; gap: 3px; }
-    .teaser-bar-title { font-size: 14px; font-weight: 800; color: #fff; }
-    .teaser-bar-sub { font-size: 11.5px; font-weight: 500; color: rgba(255, 255, 255, 0.75); line-height: 1.35; }
-    .teaser-bar-chevron { color: rgba(255, 255, 255, 0.7); }
+    /* ============================================================
+       Send view
+       ============================================================ */
+    .send-view { display: flex; flex-direction: column; align-items: center; gap: 32px; }
 
-    /* Chips row 2 Premium (secure/track/boost/offline/studio) — SOUS le rectangle */
-    .premium-row {
-      display: flex; gap: 10px; justify-content: center; margin-bottom: 28px; flex-wrap: nowrap; overflow-x: auto; max-width: 100%;
-      padding: 0 4px; scrollbar-width: none; -ms-overflow-style: none;
-    }
-    .premium-row::-webkit-scrollbar { display: none; }
-    .premium-chip {
-      flex: 0 0 auto;
-      width: 54px; height: 54px;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 0.5px solid rgba(255, 255, 255, 0.18);
-      display: grid; place-items: center;
-      opacity: 0.75;
-    }
-    .premium-chip svg { width: 20px; height: 20px; fill: #fff; }
-
-    /* Hero orb central (cercle cyan → bleu comme app Send) */
+    /* Hero orb + halo */
     .hero {
       position: relative;
-      width: 200px; height: 200px;
-      margin: 12px 0 24px;
+      width: 220px; height: 220px;
       display: grid; place-items: center;
+      margin-top: 20px;
     }
     .hero-halo {
       position: absolute; inset: 0; border-radius: 50%;
-      background: radial-gradient(circle at center, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.04) 45%, transparent 70%);
-      filter: blur(2px);
+      background: radial-gradient(circle at 50% 45%, rgba(0, 163, 255, 0.55), transparent 65%);
+      filter: blur(20px);
+      animation: halo-pulse 3.5s ease-in-out infinite;
+    }
+    @keyframes halo-pulse {
+      0%, 100% { transform: scale(1);    opacity: 0.75; }
+      50%      { transform: scale(1.10); opacity: 1;    }
     }
     .hero-orb {
       position: relative;
-      width: 118px; height: 118px;
-      border-radius: 50%;
-      background: linear-gradient(180deg, #0AE2FF 0%, #0000FF 100%);
-      border: 0.8px solid rgba(255, 255, 255, 0.55);
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      width: 132px; height: 132px; border-radius: 50%;
+      background: linear-gradient(160deg, #00E0FF 0%, #0066FF 55%, #0022AA 100%);
       display: grid; place-items: center;
+      box-shadow:
+        inset 0 2px 0 rgba(255, 255, 255, 0.30),
+        inset 0 -12px 24px rgba(0, 20, 100, 0.55),
+        0 20px 40px rgba(0, 40, 180, 0.45),
+        0 0 60px rgba(0, 163, 255, 0.25);
+      border: 1.5px solid rgba(255, 255, 255, 0.35);
+      transition: transform 0.2s var(--spring-bounce);
     }
-    .hero-orb svg {
-      width: 46px; height: 46px; fill: #fff;
-      filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.30));
+    .hero-orb:active { transform: scale(0.94); }
+    .hero-orb svg { filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35)); }
+    .hero-orbit {
+      position: absolute; inset: -20px; border-radius: 50%;
+      border: 1px dashed rgba(255, 255, 255, 0.10);
+      animation: orbit-spin 22s linear infinite;
     }
+    @keyframes orbit-spin { to { transform: rotate(360deg); } }
 
-    /* Devices row (3 slots comme app) */
-    .devices-row {
-      display: flex; gap: 12px; justify-content: center; margin-top: 8px;
-    }
-    .device-bubble {
-      width: 100px; height: 100px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.001);
+    /* Chips row */
+    .chips-row { display: flex; gap: 14px; justify-content: center; width: 100%; }
+    .chip {
+      flex: 1; max-width: 108px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 14px 10px 12px;
+      border-radius: 22px;
+      background: var(--glass-fill);
+      border: 0.6px solid var(--glass-border);
       backdrop-filter: blur(24px) saturate(140%);
       -webkit-backdrop-filter: blur(24px) saturate(140%);
-      border: 0.8px solid rgba(255, 255, 255, 0.22);
-      display: grid; place-items: center;
-      color: rgba(255, 255, 255, 0.75);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.20), inset 0 1px 0 rgba(255, 255, 255, 0.10);
+      color: var(--text);
       cursor: pointer;
+      transition: transform 0.15s var(--spring-bounce), background 0.2s;
     }
-    .device-bubble svg { width: 26px; height: 26px; fill: #fff; opacity: 0.85; }
-    .device-bubble .plus { font-size: 26px; font-weight: 400; color: rgba(255, 255, 255, 0.65); }
-    .device-label {
-      font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.55);
-      text-align: center; margin-top: 8px;
+    .chip:active { transform: scale(0.94); background: var(--glass-strong); }
+    .chip-icon {
+      width: 44px; height: 44px; border-radius: 14px;
+      display: grid; place-items: center;
+      background: linear-gradient(160deg, rgba(0, 200, 255, 0.28), rgba(0, 60, 255, 0.28));
+      border: 0.5px solid rgba(255, 255, 255, 0.18);
     }
-    .device-slot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .chip-icon svg { fill: #fff; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25)); }
+    .chip-label { font-size: 12px; font-weight: 700; letter-spacing: -0.01em; }
+    .chip.armed .chip-icon { background: linear-gradient(160deg, #00E0FF, #0066FF); box-shadow: 0 0 20px rgba(0, 163, 255, 0.55); }
 
-    /* Bottom nav tab bar (Home / Send / Received) */
-    .tabbar {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 10;
-      padding: 8px 20px calc(env(safe-area-inset-bottom, 0) + 10px);
-      display: flex; justify-content: center;
-      pointer-events: none;
+    /* Devices row */
+    .devices-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%;
     }
-    .tabbar-inner {
-      pointer-events: auto;
-      display: flex; gap: 6px;
-      padding: 8px;
-      border-radius: 999px;
-      background: rgba(0, 0, 0, 0.28);
-      backdrop-filter: blur(28px) saturate(160%);
-      -webkit-backdrop-filter: blur(28px) saturate(160%);
-      border: 0.6px solid rgba(255, 255, 255, 0.14);
-    }
-    .tab-btn {
-      background: none; border: none; padding: 10px 18px; border-radius: 999px;
-      color: rgba(255, 255, 255, 0.60); font-size: 12px; font-weight: 700;
-      cursor: pointer; display: flex; align-items: center; gap: 6px;
-    }
-    .tab-btn.active {
-      background: rgba(255, 255, 255, 0.14);
-      color: #fff;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20);
-    }
-    .tab-btn svg { width: 16px; height: 16px; fill: currentColor; }
-
-    /* Beta note (à l'installation la 1re fois) */
-    .beta-note {
-      margin-top: 24px;
-      padding: 14px 16px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 0.6px solid rgba(255, 255, 255, 0.14);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      max-width: 340px;
-      font-size: 12px; font-weight: 500;
-      color: rgba(255, 255, 255, 0.75);
-      line-height: 1.5;
-      text-align: center;
-    }
-    .beta-note b { color: #fff; font-weight: 800; }
-
-    /* ============ View routing ============ */
-    body[data-view="received"] .content { display: none; }
-    body[data-view="received"] #received-view { display: flex; }
-    body:not([data-view="received"]) #received-view { display: none; }
-    body[data-view="home"] .chips-row,
-    body[data-view="home"] .teaser-bar,
-    body[data-view="home"] .premium-row,
-    body[data-view="home"] .devices-row,
-    body[data-view="home"] .beta-note,
-    body[data-view="home"] .send-fab { display: none; }
-    body[data-view="home"] .hero { margin-top: 40vh; }
-
-    /* ============ Device slot online + selected state ============ */
-    .device-bubble.online { box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.85), 0 8px 20px rgba(0, 0, 0, 0.24); }
-    .device-slot { cursor: pointer; transition: transform 0.15s ease; }
-    .device-slot:active { transform: scale(0.97); }
-    .device-slot.selected .device-bubble { box-shadow: 0 0 0 2.5px #fff, 0 8px 20px rgba(0, 0, 0, 0.30); }
-    .device-slot.selected .device-label { color: #fff; font-weight: 800; }
-
-    /* ============ Send FAB ============ */
-    .send-fab {
-      position: fixed; left: 50%; transform: translateX(-50%);
-      bottom: calc(84px + env(safe-area-inset-bottom));
-      display: flex; align-items: center; gap: 8px;
-      padding: 12px 22px;
-      border-radius: 999px; border: none;
-      background: rgba(255, 255, 255, 0.14);
-      color: #fff; font-size: 15px; font-weight: 800;
+    .device-slot {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 16px 8px;
+      border-radius: 20px;
+      background: var(--glass-fill);
+      border: 0.6px solid var(--glass-border);
       backdrop-filter: blur(20px) saturate(140%);
       -webkit-backdrop-filter: blur(20px) saturate(140%);
-      border: 0.8px solid rgba(255, 255, 255, 0.22);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
-      cursor: pointer; opacity: 0.45;
-      transition: opacity 0.25s ease, transform 0.15s ease, background 0.25s ease;
+      cursor: pointer;
+      transition: transform 0.15s var(--spring), border-color 0.25s, background 0.25s;
+    }
+    .device-slot:active { transform: scale(0.97); }
+    .device-slot.selected {
+      background: linear-gradient(180deg, rgba(0, 130, 255, 0.30), rgba(0, 60, 200, 0.20));
+      border-color: rgba(255, 255, 255, 0.55);
+      box-shadow: 0 0 24px rgba(0, 163, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.20);
+    }
+    .device-bubble {
+      position: relative;
+      width: 54px; height: 54px; border-radius: 50%;
+      display: grid; place-items: center;
+      background: linear-gradient(160deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+      border: 0.6px solid var(--glass-border);
+    }
+    .device-bubble svg { fill: #fff; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35)); }
+    .device-bubble .plus { font-size: 26px; font-weight: 300; color: rgba(255, 255, 255, 0.65); line-height: 1; }
+    .device-bubble.online::after {
+      content: ''; position: absolute; bottom: 2px; right: 2px;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--success);
+      border: 2px solid var(--bg-mid);
+      box-shadow: 0 0 8px var(--success);
+      animation: dot-pulse 2s ease-in-out infinite;
+    }
+    @keyframes dot-pulse {
+      0%, 100% { transform: scale(1);    opacity: 1;    }
+      50%      { transform: scale(1.15); opacity: 0.85; }
+    }
+    .device-label {
+      font-size: 12px; font-weight: 700;
+      color: var(--text-dim); max-width: 100%;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .device-slot.selected .device-label { color: var(--text); }
+
+    /* Pending file preview */
+    .pending-file {
+      display: none;
+      align-items: center; gap: 12px;
+      padding: 10px 14px 10px 12px;
+      border-radius: 16px;
+      background: var(--glass-strong);
+      border: 0.6px solid var(--glass-border);
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+      width: 100%; max-width: 320px; margin: 0 auto;
+      animation: slide-in-up 0.35s var(--spring) both;
+    }
+    .pending-file.visible { display: flex; }
+    .pending-file-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(160deg, #00E0FF, #0066FF);
+      display: grid; place-items: center; flex-shrink: 0;
+    }
+    .pending-file-icon svg { fill: #fff; }
+    .pending-file-meta { flex: 1; min-width: 0; }
+    .pending-file-name { font-size: 13px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pending-file-sub { font-size: 11px; font-weight: 500; color: var(--text-dim); margin-top: 2px; }
+    .pending-file-clear {
+      width: 28px; height: 28px; border-radius: 999px; border: none; flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.10); color: #fff; display: grid; place-items: center; cursor: pointer;
+    }
+    .pending-file-clear:active { transform: scale(0.9); }
+    @keyframes slide-in-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ============================================================
+       Home view
+       ============================================================ */
+    .home-view { display: none; flex-direction: column; align-items: center; gap: 20px; padding-top: 20px; }
+    body[data-view="home"] .home-view { display: flex; }
+    body[data-view="home"] .send-view { display: none; }
+    body[data-view="home"] .send-fab { display: none; }
+    .home-hero {
+      display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 8vh;
+    }
+    .home-wordmark { font-size: 72px; font-weight: 900; letter-spacing: -0.03em; text-shadow: 0 8px 32px rgba(0, 60, 255, 0.45); }
+    .home-tagline { font-size: 15px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.02em; }
+    .home-cards { display: flex; flex-direction: column; gap: 12px; width: 100%; margin-top: 24px; }
+    .home-card {
+      padding: 18px 20px;
+      border-radius: 24px;
+      background: var(--glass-fill);
+      border: 0.6px solid var(--glass-border);
+      backdrop-filter: blur(24px) saturate(140%);
+      -webkit-backdrop-filter: blur(24px) saturate(140%);
+    }
+    .home-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .home-card-icon { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: linear-gradient(160deg, rgba(0, 200, 255, 0.28), rgba(0, 60, 255, 0.28)); }
+    .home-card-icon svg { fill: #fff; }
+    .home-card-title { font-size: 14px; font-weight: 800; color: #fff; }
+    .home-card-body { font-size: 13px; font-weight: 500; color: var(--text-dim); line-height: 1.5; }
+    .home-card-metric { font-size: 32px; font-weight: 900; color: #fff; letter-spacing: -0.02em; margin-top: 4px; }
+    .home-card-metric .unit { font-size: 14px; font-weight: 700; color: var(--text-dim); margin-left: 6px; }
+
+    /* ============================================================
+       Received view
+       ============================================================ */
+    .received-view { display: none; flex-direction: column; width: 100%; padding-top: 12px; }
+    body[data-view="received"] .received-view { display: flex; }
+    body[data-view="received"] .send-view { display: none; }
+    body[data-view="received"] .send-fab { display: none; }
+    .received-title { font-size: 28px; font-weight: 900; letter-spacing: -0.02em; margin: 12px 4px 20px; }
+    .received-list { display: flex; flex-direction: column; gap: 12px; }
+    .received-empty {
+      text-align: center; padding: 60px 20px;
+      color: var(--text-dim); font-size: 13px; font-weight: 500;
+    }
+    .received-empty-icon {
+      width: 72px; height: 72px; border-radius: 24px; margin: 0 auto 16px;
+      background: var(--glass-fill); border: 0.6px solid var(--glass-border);
+      display: grid; place-items: center;
+    }
+    .received-empty-icon svg { fill: rgba(255, 255, 255, 0.35); }
+    .received-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px;
+      border-radius: 20px;
+      background: var(--glass-fill);
+      border: 0.6px solid var(--glass-border);
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+      animation: slide-in-up 0.35s var(--spring) both;
+    }
+    .received-thumb {
+      width: 60px; height: 60px; border-radius: 14px;
+      object-fit: cover; background: rgba(0, 0, 0, 0.30);
+      flex-shrink: 0;
+    }
+    .received-thumb-icon {
+      display: grid; place-items: center;
+      background: linear-gradient(160deg, #00E0FF, #0066FF);
+    }
+    .received-thumb-icon svg { fill: #fff; }
+    .received-meta { flex: 1; min-width: 0; }
+    .received-name { font-size: 14px; font-weight: 800; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .received-sub {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600; color: var(--text-dim);
+      margin-top: 4px;
+    }
+    .received-sub .sender-pill {
+      padding: 2px 8px; border-radius: 999px;
+      background: rgba(0, 163, 255, 0.20);
+      color: #7DD3FC;
+      font-weight: 700;
+    }
+    .received-dl {
+      width: 40px; height: 40px; border-radius: 999px; border: none; flex-shrink: 0;
+      background: linear-gradient(160deg, #00E0FF, #0066FF);
+      color: #fff; display: grid; place-items: center;
+      cursor: pointer; text-decoration: none;
+      box-shadow: 0 4px 12px rgba(0, 163, 255, 0.45);
+      transition: transform 0.15s var(--spring-bounce);
+    }
+    .received-dl:active { transform: scale(0.90); }
+
+    /* ============================================================
+       Send FAB
+       ============================================================ */
+    .send-fab {
+      position: fixed; left: 50%; transform: translateX(-50%) translateY(20px);
+      bottom: calc(100px + env(safe-area-inset-bottom));
+      display: flex; align-items: center; gap: 10px;
+      padding: 16px 26px;
+      border-radius: 999px; border: none;
+      background: linear-gradient(160deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.04));
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 15px; font-weight: 800; letter-spacing: 0.01em;
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+      border: 0.8px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.30);
+      cursor: default; opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s var(--spring), transform 0.4s var(--spring-bounce), background 0.3s;
       z-index: 15;
     }
     .send-fab.ready {
       opacity: 1;
-      background: linear-gradient(180deg, rgba(0, 130, 255, 0.55) 0%, rgba(0, 90, 220, 0.55) 100%);
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+      cursor: pointer;
+      color: #fff;
+      background: linear-gradient(160deg, #00A3FF 0%, #0033FF 100%);
       border-color: rgba(255, 255, 255, 0.35);
+      box-shadow: 0 16px 40px rgba(0, 60, 255, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.30);
     }
-    .send-fab:disabled { cursor: default; }
-    .send-fab.ready:active { transform: translateX(-50%) scale(0.96); }
-    body[data-view="received"] .send-fab,
-    body[data-view="home"] .send-fab { display: none; }
+    .send-fab.ready:active { transform: translateX(-50%) translateY(0) scale(0.96); }
+    .send-fab svg { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35)); }
 
-    /* ============ Received view ============ */
-    .received-view {
-      display: none;
-      flex-direction: column;
-      width: 100%; max-width: 430px;
-      padding: 24px 16px calc(96px + env(safe-area-inset-bottom));
-      z-index: 1; position: relative;
+    /* ============================================================
+       Tab bar
+       ============================================================ */
+    .tabbar {
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      width: calc(100% - 32px); max-width: 400px;
+      padding: 6px;
+      border-radius: 999px;
+      background: rgba(10, 15, 35, 0.72);
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      border: 0.8px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      display: flex;
+      z-index: 20;
     }
-    .received-header { font-size: 26px; font-weight: 900; color: #fff; margin: 16px 8px 20px; }
-    .received-list { display: flex; flex-direction: column; gap: 10px; }
-    .received-empty { color: rgba(255, 255, 255, 0.6); font-size: 13px; font-weight: 500; text-align: center; padding: 40px 20px; }
-    .received-row {
-      display: flex; align-items: center; gap: 12px;
-      padding: 10px 12px;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 0.6px solid rgba(255, 255, 255, 0.14);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+    .tab-btn {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 12px 8px;
+      border: none; background: transparent;
+      color: rgba(255, 255, 255, 0.55);
+      font-family: inherit; font-size: 12px; font-weight: 700;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: color 0.25s, background 0.35s var(--spring);
     }
-    .received-thumb { width: 52px; height: 52px; border-radius: 12px; object-fit: cover; background: rgba(0, 0, 0, 0.20); flex-shrink: 0; }
-    .received-thumb-icon { display: grid; place-items: center; }
-    .received-meta { flex: 1; min-width: 0; }
-    .received-name { font-size: 14px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .received-sub { font-size: 11px; font-weight: 500; color: rgba(255, 255, 255, 0.65); margin-top: 2px; }
-    .received-dl {
-      width: 36px; height: 36px; display: grid; place-items: center;
-      border-radius: 999px; background: rgba(255, 255, 255, 0.12);
-      color: #fff; text-decoration: none; flex-shrink: 0;
+    .tab-btn svg { width: 18px; height: 18px; fill: currentColor; transition: transform 0.25s var(--spring-bounce); }
+    .tab-btn.active {
+      background: linear-gradient(160deg, #00A3FF 0%, #0033FF 100%);
+      color: #fff;
+      box-shadow: 0 6px 20px rgba(0, 60, 255, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
     }
-    .received-dl:active { transform: scale(0.94); }
+    .tab-btn.active svg { transform: scale(1.15); }
+    .tab-btn:not(.active):active { background: rgba(255, 255, 255, 0.06); }
 
-    /* ============ Pairing modal ============ */
+    /* ============================================================
+       Pairing modal (bottom sheet)
+       ============================================================ */
     .pairing-modal {
       position: fixed; inset: 0; z-index: 30;
-      display: grid; place-items: center;
+      display: flex; align-items: flex-end; justify-content: center;
       background: rgba(0, 0, 0, 0.55);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      padding: 20px;
-      animation: modal-fade 0.25s ease both;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      animation: fade-in 0.25s ease both;
     }
     .pairing-modal[hidden] { display: none; }
     .pairing-card {
-      position: relative; width: 100%; max-width: 340px;
-      padding: 24px 20px;
-      border-radius: 24px;
-      background: linear-gradient(180deg, rgba(30, 30, 60, 0.85) 0%, rgba(20, 20, 40, 0.90) 100%);
-      border: 0.8px solid rgba(255, 255, 255, 0.22);
-      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55);
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      position: relative; width: 100%; max-width: 480px;
+      padding: 12px 24px calc(32px + env(safe-area-inset-bottom));
+      border-radius: 28px 28px 0 0;
+      background: linear-gradient(180deg, rgba(15, 25, 60, 0.98), rgba(5, 10, 30, 0.99));
+      border-top: 0.8px solid rgba(255, 255, 255, 0.22);
+      box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.65);
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+      animation: sheet-up 0.4s var(--spring) both;
+    }
+    .pairing-grip {
+      width: 38px; height: 4px; border-radius: 999px;
+      background: rgba(255, 255, 255, 0.22);
+      margin: 4px 0 8px;
     }
     .pairing-close {
-      position: absolute; top: 12px; right: 12px;
+      position: absolute; top: 14px; right: 14px;
       width: 32px; height: 32px; border-radius: 999px;
-      border: none; background: rgba(255, 255, 255, 0.12);
+      border: none; background: rgba(255, 255, 255, 0.10);
       color: #fff; display: grid; place-items: center; cursor: pointer;
     }
-    .pairing-title { font-size: 18px; font-weight: 900; color: #fff; }
-    .pairing-sub { font-size: 12px; font-weight: 500; color: rgba(255, 255, 255, 0.70); text-align: center; line-height: 1.4; margin-bottom: 4px; }
-    .pairing-qr { width: 168px; height: 168px; padding: 8px; background: #fff; border-radius: 12px; display: grid; place-items: center; }
-    .pairing-qr canvas, .pairing-qr img { display: block; }
-    .pairing-code {
-      font-family: 'Inter', system-ui; font-size: 22px; font-weight: 900;
-      letter-spacing: 4px; color: #fff;
-      padding: 8px 16px; border-radius: 10px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 0.6px solid rgba(255, 255, 255, 0.18);
+    .pairing-close:active { transform: scale(0.9); }
+    .pairing-hero {
+      position: relative;
+      width: 88px; height: 88px; border-radius: 50%;
+      background: linear-gradient(160deg, #00E0FF, #0066FF);
+      display: grid; place-items: center;
+      box-shadow: 0 12px 32px rgba(0, 60, 255, 0.55), 0 0 40px rgba(0, 163, 255, 0.35);
+      border: 1.5px solid rgba(255, 255, 255, 0.30);
     }
-    .pairing-or { font-size: 11px; font-weight: 600; color: rgba(255, 255, 255, 0.55); margin: 4px 0; text-transform: uppercase; letter-spacing: 1px; }
+    .pairing-hero svg { fill: #fff; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35)); }
+    .pairing-title { font-size: 22px; font-weight: 900; letter-spacing: -0.02em; text-align: center; }
+    .pairing-sub { font-size: 13px; font-weight: 500; color: var(--text-dim); text-align: center; line-height: 1.5; max-width: 320px; }
+    .pairing-qr {
+      width: 180px; height: 180px; padding: 10px;
+      background: #fff; border-radius: 20px;
+      display: grid; place-items: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+    .pairing-qr canvas, .pairing-qr img { display: block; }
+    .pairing-code-wrap {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 20px;
+      border-radius: 16px;
+      background: var(--glass-strong);
+      border: 0.6px solid var(--glass-border);
+    }
+    .pairing-code {
+      font-family: 'Inter', system-ui;
+      font-size: 26px; font-weight: 900;
+      letter-spacing: 6px; color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+    .pairing-copy {
+      width: 32px; height: 32px; border-radius: 999px; border: none;
+      background: rgba(255, 255, 255, 0.12); color: #fff;
+      display: grid; place-items: center; cursor: pointer;
+    }
+    .pairing-copy:active { transform: scale(0.9); }
+    .pairing-or {
+      display: flex; align-items: center; gap: 12px; width: 100%; margin: 6px 0;
+      font-size: 11px; font-weight: 700; color: rgba(255, 255, 255, 0.35);
+      text-transform: uppercase; letter-spacing: 1.5px;
+    }
+    .pairing-or::before, .pairing-or::after {
+      content: ''; flex: 1; height: 0.5px; background: rgba(255, 255, 255, 0.14);
+    }
     .pairing-input-row { display: flex; gap: 8px; width: 100%; }
     .pairing-input {
       flex: 1; min-width: 0;
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: 0.8px solid rgba(255, 255, 255, 0.20);
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 0.8px solid rgba(255, 255, 255, 0.22);
       background: rgba(0, 0, 0, 0.30);
-      color: #fff;
-      font-size: 14px; font-weight: 700; letter-spacing: 2px;
+      color: #fff; font-family: inherit;
+      font-size: 16px; font-weight: 800; letter-spacing: 3px;
       text-align: center; text-transform: uppercase;
       outline: none;
+      transition: border-color 0.2s;
     }
-    .pairing-input::placeholder { color: rgba(255, 255, 255, 0.35); letter-spacing: 0; text-transform: none; font-weight: 500; }
+    .pairing-input:focus { border-color: rgba(0, 163, 255, 0.80); }
+    .pairing-input::placeholder { color: rgba(255, 255, 255, 0.30); letter-spacing: 0; text-transform: none; font-weight: 500; font-size: 13px; }
     .pairing-submit {
-      padding: 12px 18px;
-      border-radius: 12px; border: none;
-      background: #fff; color: #005EFF;
-      font-size: 13px; font-weight: 800; cursor: pointer;
-      flex-shrink: 0;
+      padding: 14px 20px;
+      border-radius: 14px; border: none; flex-shrink: 0;
+      background: linear-gradient(160deg, #00A3FF, #0033FF);
+      color: #fff; font-family: inherit;
+      font-size: 14px; font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(0, 60, 255, 0.45);
     }
     .pairing-submit:active { transform: scale(0.96); }
-    @keyframes modal-fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
-    /* ============ Toast ============ */
+    /* ============================================================
+       Toast (top center, typed)
+       ============================================================ */
     #toast {
-      position: fixed; left: 50%; transform: translateX(-50%);
-      top: calc(24px + env(safe-area-inset-top));
-      padding: 10px 16px;
+      position: fixed; left: 50%; transform: translateX(-50%) translateY(-10px);
+      top: calc(20px + env(safe-area-inset-top));
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 16px 10px 12px;
       border-radius: 999px;
-      background: rgba(20, 20, 40, 0.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 0.6px solid rgba(255, 255, 255, 0.22);
+      background: rgba(15, 20, 45, 0.85);
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      border: 0.8px solid rgba(255, 255, 255, 0.20);
       color: #fff; font-size: 13px; font-weight: 700;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
       opacity: 0; pointer-events: none;
-      transition: opacity 0.25s ease, transform 0.25s ease;
-      z-index: 40; max-width: 88vw; text-align: center;
+      transition: opacity 0.3s var(--spring), transform 0.3s var(--spring);
+      z-index: 40; max-width: 88vw;
     }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast .toast-icon {
+      width: 22px; height: 22px; border-radius: 999px;
+      display: grid; place-items: center; flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.14);
+    }
+    #toast .toast-icon svg { fill: currentColor; }
+    #toast.type-success .toast-icon { background: rgba(52, 211, 153, 0.28); color: var(--success); }
+    #toast.type-error   .toast-icon { background: rgba(248, 113, 113, 0.28); color: var(--danger); }
+    #toast.type-info    .toast-icon { background: rgba(0, 163, 255, 0.28);   color: #7DD3FC; }
+
+    /* ============================================================
+       Install banner
+       ============================================================ */
+    .install-banner {
+      position: fixed; left: 12px; right: 12px; bottom: calc(88px + env(safe-area-inset-bottom));
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px;
+      border-radius: 20px;
+      background: rgba(10, 15, 35, 0.85);
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      border: 0.6px solid rgba(255, 255, 255, 0.22);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      z-index: 25;
+      animation: sheet-up 0.45s var(--spring) both;
+    }
+    .install-banner[hidden] { display: none; }
+    .install-icon {
+      width: 36px; height: 36px; display: grid; place-items: center;
+      border-radius: 12px; flex-shrink: 0;
+      background: linear-gradient(160deg, #00E0FF, #0066FF);
+    }
+    .install-text { flex: 1; min-width: 0; }
+    .install-title { font-size: 13px; font-weight: 800; color: #fff; line-height: 1.2; }
+    .install-sub { font-size: 11px; font-weight: 500; color: rgba(255, 255, 255, 0.65); line-height: 1.3; margin-top: 2px; }
+    .install-btn {
+      padding: 8px 14px; border-radius: 999px; border: none; flex-shrink: 0;
+      background: #fff; color: #0033FF; font-family: inherit;
+      font-size: 12px; font-weight: 800; cursor: pointer;
+    }
+    .install-btn:active { transform: scale(0.96); }
+    .install-dismiss {
+      width: 28px; height: 28px; border-radius: 999px; border: none; flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.10); color: #fff;
+      display: grid; place-items: center; cursor: pointer;
+    }
   </style>
 </head>
-<body>
-  <div class="noise"></div>
-  <div class="hero-backdrop"></div>
+<body data-view="send">
+  <div class="aurora" aria-hidden="true"></div>
+  <div class="noise" aria-hidden="true"></div>
 
-  <div class="content">
-    <!-- Header : wordmark Poof + beta + nuage top-right — identique app iOS -->
-    <div class="header">
-      <div class="wordmark-row">
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
         <div class="wordmark">Poof</div>
         <div class="beta-pill">beta</div>
       </div>
-      <button class="cloud-btn" aria-label="Menu">
-        <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18 10a5 5 0 0 0-9.6-1.4A4 4 0 0 0 6 16h11a4 4 0 0 0 1-6z"/>
+      <button class="icon-btn" aria-label="Paramètres">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
         </svg>
       </button>
-    </div>
+    </header>
 
-    <!-- Chips row 1 (photo / doc / clipboard) au-dessus du rectangle -->
-    <div class="chips-row">
-      <div class="chip" role="button" aria-label="Photo">
-        <svg viewBox="0 0 24 24"><path d="M3 6a2 2 0 0 1 2-2h3l2-2h4l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6zm9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>
+    <!-- ============ SEND VIEW (default) ============ -->
+    <section class="send-view">
+      <div class="hero">
+        <div class="hero-orbit"></div>
+        <div class="hero-halo"></div>
+        <div class="hero-orb">
+          <svg viewBox="0 0 24 24" width="52" height="52"><path d="M2.5 12l19-9-4 19-5-8-10-2z" fill="#fff"/></svg>
+        </div>
       </div>
-      <div class="chip" role="button" aria-label="Fichier">
-        <svg viewBox="0 0 24 24"><path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm7 0v6h6"/></svg>
-      </div>
-      <div class="chip" role="button" aria-label="Clipboard">
-        <svg viewBox="0 0 24 24"><path d="M9 2a2 2 0 0 0-2 2v1H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2V4a2 2 0 0 0-2-2H9zm0 2h6v2H9V4z"/></svg>
-      </div>
-    </div>
 
-    <!-- Rectangle upsell Premium (miroir de PremiumUpsellBar app) -->
-    <div class="teaser-bar">
-      <div class="teaser-bar-icon">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="#fff"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2z"/></svg>
+      <div class="chips-row">
+        <button class="chip" aria-label="Photo">
+          <div class="chip-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 6a2 2 0 0 1 2-2h3l2-2h4l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6zm9 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8z"/></svg>
+          </div>
+          <div class="chip-label">Photos</div>
+        </button>
+        <button class="chip" aria-label="Fichier">
+          <div class="chip-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm7 0v6h6"/></svg>
+          </div>
+          <div class="chip-label">Fichier</div>
+        </button>
+        <button class="chip" aria-label="Clipboard">
+          <div class="chip-icon">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 2a2 2 0 0 0-2 2v1H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2V4a2 2 0 0 0-2-2H9zm0 2h6v2H9V4z"/></svg>
+          </div>
+          <div class="chip-label">Presse-papiers</div>
+        </button>
       </div>
-      <div class="teaser-bar-text">
-        <div class="teaser-bar-title">Poof Premium</div>
-        <div class="teaser-bar-sub">Secure · Track · Boost · Offline · Studio</div>
-      </div>
-      <div class="teaser-bar-chevron">
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
-      </div>
-    </div>
 
-    <!-- Chips row 2 Premium (secure/track/boost/offline/studio) -->
-    <div class="premium-row">
-      <div class="premium-chip" title="Secure"><svg viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5-3.5 9.5-8 10-4.5-.5-8-5-8-10V6l8-4z"/></svg></div>
-      <div class="premium-chip" title="Track"><svg viewBox="0 0 24 24"><path d="M12 5c-5 0-9.3 3.5-11 7 1.7 3.5 6 7 11 7s9.3-3.5 11-7c-1.7-3.5-6-7-11-7zm0 11a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/></svg></div>
-      <div class="premium-chip" title="Boost"><svg viewBox="0 0 24 24"><path d="M13 2L4 14h6l-2 8 10-12h-6l1-8z"/></svg></div>
-      <div class="premium-chip" title="Offline"><svg viewBox="0 0 24 24"><path d="M2 12l20-9-4 20-5-8-11-3z"/></svg></div>
-      <div class="premium-chip" title="Studio"><svg viewBox="0 0 24 24"><path d="M2 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2l4-2v12l-4-2v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z"/></svg></div>
-    </div>
+      <div class="pending-file" id="pending-file">
+        <div class="pending-file-icon"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6z"/></svg></div>
+        <div class="pending-file-meta">
+          <div class="pending-file-name" id="pending-file-name">—</div>
+          <div class="pending-file-sub" id="pending-file-sub">Choisis un destinataire ci-dessous</div>
+        </div>
+        <button class="pending-file-clear" id="pending-file-clear" aria-label="Retirer">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M6 18L18 6"/></svg>
+        </button>
+      </div>
 
-    <!-- Hero orb central (cercle cyan → bleu + paperplane, comme Send) -->
-    <div class="hero">
-      <div class="hero-halo"></div>
-      <div class="hero-orb">
-        <svg viewBox="0 0 24 24"><path d="M2.5 12l19-9-4 19-5-8-10-2z"/></svg>
+      <div class="devices-row">
+        <div class="device-slot">
+          <div class="device-bubble"><span class="plus">+</span></div>
+          <div class="device-label">Vide</div>
+        </div>
+        <div class="device-slot">
+          <div class="device-bubble"><span class="plus">+</span></div>
+          <div class="device-label">Vide</div>
+        </div>
+        <div class="device-slot">
+          <div class="device-bubble"><span class="plus">+</span></div>
+          <div class="device-label">Vide</div>
+        </div>
       </div>
-    </div>
+    </section>
 
-    <!-- Devices row (3 slots) -->
-    <div class="devices-row">
-      <div class="device-slot">
-        <div class="device-bubble"><span class="plus">+</span></div>
-        <div class="device-label">Empty</div>
+    <!-- ============ HOME VIEW ============ -->
+    <section class="home-view">
+      <div class="home-hero">
+        <div class="home-wordmark">Poof</div>
+        <div class="home-tagline">Send Anywhere.</div>
       </div>
-      <div class="device-slot">
-        <div class="device-bubble"><span class="plus">+</span></div>
-        <div class="device-label">Empty</div>
+      <div class="home-cards">
+        <div class="home-card">
+          <div class="home-card-header">
+            <div class="home-card-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <div class="home-card-title">Appareils appairés</div>
+          </div>
+          <div class="home-card-metric" id="home-metric-devices">0<span class="unit">en ligne</span></div>
+        </div>
+        <div class="home-card">
+          <div class="home-card-header">
+            <div class="home-card-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 3h14a2 2 0 0 1 2 2v10h-6l-2 3h-4l-2-3H3V5a2 2 0 0 1 2-2z"/></svg>
+            </div>
+            <div class="home-card-title">Fichiers reçus</div>
+          </div>
+          <div class="home-card-metric" id="home-metric-received">0<span class="unit">cette session</span></div>
+        </div>
+        <div class="home-card">
+          <div class="home-card-header">
+            <div class="home-card-icon">
+              <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 2l8 4v6c0 5-3.5 9.5-8 10-4.5-.5-8-5-8-10V6l8-4z"/></svg>
+            </div>
+            <div class="home-card-title">Chiffré bout en bout</div>
+          </div>
+          <div class="home-card-body">Aucun compte, aucun tracker. Tes fichiers ne sont stockés qu'à titre transitoire et expirent en 1 heure.</div>
+        </div>
       </div>
-      <div class="device-slot">
-        <div class="device-bubble"><span class="plus">+</span></div>
-        <div class="device-label">Empty</div>
-      </div>
-    </div>
+    </section>
 
-    <!-- Beta note -->
-    <div class="beta-note">
-      <b>Poof est en beta sur Android / Windows / Linux.</b><br>
-      Les fonctionnalités complètes arrivent bientôt. Pour l'instant, tu peux installer cette page sur ton écran d'accueil pour être prêt au lancement.
-    </div>
+    <!-- ============ RECEIVED VIEW ============ -->
+    <section class="received-view">
+      <div class="received-title">Reçus</div>
+      <div id="received-list" class="received-list">
+        <div class="received-empty">
+          <div class="received-empty-icon">
+            <svg viewBox="0 0 24 24" width="30" height="30"><path d="M5 3h14a2 2 0 0 1 2 2v10h-6l-2 3h-4l-2-3H3V5a2 2 0 0 1 2-2zm-2 14h6l2 3h4l2-3h6v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2z"/></svg>
+          </div>
+          Rien pour l'instant.<br>Les fichiers envoyés vers ce device apparaîtront ici.
+        </div>
+      </div>
+    </section>
   </div>
 
-  <!-- Received view (masquée par défaut, activée via data-view="received") -->
-  <div class="received-view" id="received-view">
-    <div class="received-header">Reçus</div>
-    <div id="received-list" class="received-list">
-      <div class="received-empty">Rien pour l'instant. Les fichiers envoyés vers ce device apparaîtront ici.</div>
-    </div>
-  </div>
-
-  <!-- Send FAB — capsule flottante au-dessus de la tabbar, active quand
-       un fichier + un device destination sont prêts. -->
+  <!-- Send FAB -->
   <button id="send-fab" class="send-fab" disabled aria-label="Envoyer">
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M2.5 12l19-9-4 19-5-8-10-2z"/></svg>
+    <svg viewBox="0 0 24 24" width="18" height="18"><path d="M2.5 12l19-9-4 19-5-8-10-2z" fill="currentColor"/></svg>
     <span>Envoyer</span>
   </button>
 
-  <!-- Hidden file inputs — déclenchés par les chips row 1. -->
+  <!-- Hidden file inputs -->
   <input type="file" id="file-input-photo" accept="image/*,video/*" hidden />
   <input type="file" id="file-input-doc"   hidden />
 
-  <!-- Pairing modal — affiche mon code + QR, permet de coller le code du peer -->
+  <!-- Pairing modal (bottom sheet) -->
   <div id="pairing-modal" class="pairing-modal" hidden>
     <div class="pairing-card">
+      <div class="pairing-grip"></div>
       <button id="pairing-close" class="pairing-close" aria-label="Fermer">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M6 18L18 6"/></svg>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M6 18L18 6"/></svg>
       </button>
+      <div class="pairing-hero">
+        <svg viewBox="0 0 24 24" width="42" height="42"><path d="M12 3v4m0 10v4m9-9h-4m-10 0H3m14.7-6.7l-2.8 2.8m-6.4 6.4l-2.8 2.8m0-12l2.8 2.8m6.4 6.4l2.8 2.8"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
       <div class="pairing-title">Appairer un device</div>
-      <div class="pairing-sub">Montre ton code à l'autre appareil, OU entre son code ci-dessous.</div>
+      <div class="pairing-sub">Fais scanner le QR à l'autre appareil, OU échangez vos codes.</div>
       <div id="pairing-qr" class="pairing-qr"></div>
-      <div id="pairing-code" class="pairing-code">—</div>
-      <div class="pairing-or">— ou —</div>
+      <div class="pairing-code-wrap">
+        <div class="pairing-code" id="pairing-code">—</div>
+        <button id="pairing-copy" class="pairing-copy" aria-label="Copier">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        </button>
+      </div>
+      <div class="pairing-or">ou entre son code</div>
       <div class="pairing-input-row">
         <input type="text" id="pairing-input" class="pairing-input" placeholder="Code de l'autre device" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="8" />
         <button id="pairing-submit" class="pairing-submit">Pair</button>
@@ -504,30 +783,10 @@
     </div>
   </div>
 
-  <!-- Bottom tab bar (Home / Send / Received) — miroir de l'app iOS -->
-  <div class="tabbar">
-    <div class="tabbar-inner">
-      <button class="tab-btn" data-view="home">
-        <svg viewBox="0 0 24 24"><path d="M12 3l9 8h-3v10h-5v-6H11v6H6V11H3l9-8z"/></svg>
-        Home
-      </button>
-      <button class="tab-btn active" data-view="send">
-        <svg viewBox="0 0 24 24"><path d="M2.5 12l19-9-4 19-5-8-10-2z"/></svg>
-        Send
-      </button>
-      <button class="tab-btn" data-view="received">
-        <svg viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v10h-6l-2 3h-4l-2-3H3V5a2 2 0 0 1 2-2zm-2 14h6l2 3h4l2-3h6v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2z"/></svg>
-        Received
-      </button>
-    </div>
-  </div>
-
-  <!-- Install prompt (Android/Chrome) — capsule glass discrète en bas au-dessus de la tabbar.
-       Apparaît quand le browser fire `beforeinstallprompt`. Tap → prompt natif install.
-       Dismiss stocké 30j dans localStorage pour ne pas spammer. -->
+  <!-- Install banner (Android/Chrome beforeinstallprompt) -->
   <div id="install-banner" class="install-banner" hidden>
     <div class="install-icon">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
     </div>
     <div class="install-text">
       <div class="install-title">Installer Poof</div>
@@ -535,66 +794,47 @@
     </div>
     <button id="install-btn" class="install-btn">Installer</button>
     <button id="install-dismiss" class="install-dismiss" aria-label="Fermer">
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M6 18L18 6"/></svg>
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M6 18L18 6"/></svg>
     </button>
   </div>
 
-  <style>
-    .install-banner {
-      position: fixed; left: 12px; right: 12px; bottom: calc(80px + env(safe-area-inset-bottom));
-      display: flex; align-items: center; gap: 12px;
-      padding: 12px 14px;
-      border-radius: 18px;
-      background: rgba(20, 20, 40, 0.55);
-      backdrop-filter: blur(24px) saturate(140%);
-      -webkit-backdrop-filter: blur(24px) saturate(140%);
-      border: 0.6px solid rgba(255, 255, 255, 0.20);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
-      z-index: 20;
-      animation: install-slide-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
-    }
-    .install-banner[hidden] { display: none; }
-    .install-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: rgba(255, 255, 255, 0.10); border: 0.6px solid rgba(255, 255, 255, 0.18); flex-shrink: 0; }
-    .install-text { flex: 1; min-width: 0; }
-    .install-title { font-size: 13px; font-weight: 800; color: #fff; line-height: 1.2; }
-    .install-sub { font-size: 11px; font-weight: 500; color: rgba(255, 255, 255, 0.70); line-height: 1.3; margin-top: 2px; }
-    .install-btn { padding: 8px 14px; border-radius: 999px; border: none; background: #fff; color: #005EFF; font-size: 12px; font-weight: 800; cursor: pointer; flex-shrink: 0; }
-    .install-btn:active { transform: scale(0.96); }
-    .install-dismiss { width: 28px; height: 28px; border-radius: 999px; border: none; background: rgba(255, 255, 255, 0.10); color: #fff; display: grid; place-items: center; cursor: pointer; flex-shrink: 0; }
-    @keyframes install-slide-up {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-  </style>
+  <!-- Tab bar -->
+  <nav class="tabbar">
+    <button class="tab-btn" data-view="home">
+      <svg viewBox="0 0 24 24"><path d="M12 3l9 8h-3v10h-5v-6H11v6H6V11H3l9-8z"/></svg>
+      Home
+    </button>
+    <button class="tab-btn active" data-view="send">
+      <svg viewBox="0 0 24 24"><path d="M2.5 12l19-9-4 19-5-8-10-2z"/></svg>
+      Send
+    </button>
+    <button class="tab-btn" data-view="received">
+      <svg viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v10h-6l-2 3h-4l-2-3H3V5a2 2 0 0 1 2-2zm-2 14h6l2 3h4l2-3h6v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2z"/></svg>
+      Received
+    </button>
+  </nav>
 
-  <!-- Vendor deps globaux (exposent `io` et `QRCode`), avant mobile.js -->
+  <!-- Vendor + app -->
   <script src="./vendor/socket.io.min.js"></script>
   <script src="./vendor/qrcode.min.js"></script>
-  <!-- App mobile — signaling + relay HTTPS + UI wiring -->
   <script type="module" src="./mobile.js"></script>
 
   <script>
-    // Register service worker — cache app shell + navigation offline fallback.
+    // Service worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./service-worker.js').catch(() => {});
       });
     }
 
-    // Install prompt (Chrome/Edge/Samsung Internet Android) — capture le
-    // `beforeinstallprompt`, l'affiche via notre banner custom au lieu du
-    // prompt navigateur discret. Sur iOS Safari il n'y a pas d'API équivalente
-    // → l'user doit passer par « Ajouter à l'écran d'accueil » manuellement
-    // (icône partage en bas de Safari).
+    // Install prompt (Android/Chrome)
     (function () {
       const banner = document.getElementById('install-banner');
       const btnInstall = document.getElementById('install-btn');
       const btnDismiss = document.getElementById('install-dismiss');
       let deferredPrompt = null;
-
       const DISMISS_KEY = 'poof.installDismissedAt';
-      const DISMISS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 jours
-
+      const DISMISS_TTL_MS = 30 * 24 * 60 * 60 * 1000;
       function wasRecentlyDismissed() {
         const t = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
         return t && (Date.now() - t) < DISMISS_TTL_MS;
@@ -603,14 +843,12 @@
         return window.matchMedia('(display-mode: standalone)').matches
           || window.navigator.standalone === true;
       }
-
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
         if (isStandalone() || wasRecentlyDismissed()) return;
         banner.hidden = false;
       });
-
       btnInstall?.addEventListener('click', async () => {
         if (!deferredPrompt) return;
         banner.hidden = true;
@@ -618,12 +856,10 @@
         await deferredPrompt.userChoice;
         deferredPrompt = null;
       });
-
       btnDismiss?.addEventListener('click', () => {
         banner.hidden = true;
         localStorage.setItem(DISMISS_KEY, String(Date.now()));
       });
-
       window.addEventListener('appinstalled', () => {
         banner.hidden = true;
         deferredPrompt = null;

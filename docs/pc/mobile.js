@@ -1,21 +1,13 @@
 /**
  * Poof — PWA mobile entry point.
  *
- * Design principle : ne PAS utiliser WebRTC pour les fichiers (comme iOS
- * post-2026-08-18, voir project_poof_relay_https). Le server Render expose
- * un relay HTTPS complet — on upload en POST /relay/upload avec des headers
- * meta, le server push `relay-file-ready` via socket.io au destinataire,
- * qui download via GET /relay/{fileId}. Simple, fiable, marche partout.
+ * Architecture : PAS de WebRTC pour les fichiers (comme iOS post-relay
+ * 2026-08-18). Tout passe par le relay HTTPS Render — POST /relay/upload
+ * avec headers meta + push socket.io `relay-file-ready` côté destinataire,
+ * qui télécharge via GET /relay/{fileId}. Simple, fiable, marche derrière
+ * NAT/firewall. Signaling reste utilisé pour presence + pairing + notifs.
  *
- * Signaling reste utilisé pour :
- *   - `hello` (registrer le device + récupérer les peers online)
- *   - `pair-advertise` / `pair-consume` (appairage via code 6 chars)
- *   - `peer-online` / `peer-offline` (live status)
- *   - `relay-file-ready` (notif d'un fichier prêt à télécharger)
- *   - `clipboard-inbound` (clipboard sync)
- *
- * URL du signaling FORCE Render (voir project_poof_signaling_url) — ne pas
- * autoriser d'override utilisateur.
+ * URL du signaling FORCE Render (project_poof_signaling_url) — pas d'override.
  */
 import { DeviceIdentity }  from './src/device-identity.js';
 import { PairedPeerStore } from './src/paired-peer-store.js';
@@ -23,7 +15,7 @@ import { PairedPeerStore } from './src/paired-peer-store.js';
 const SIGNALING_URL = 'https://poof-fgb8.onrender.com';
 
 // ---------------------------------------------------------------------------
-// Boot
+// Socket + state
 // ---------------------------------------------------------------------------
 const socket = io(SIGNALING_URL, {
   transports: ['websocket', 'polling'],
@@ -33,17 +25,15 @@ const socket = io(SIGNALING_URL, {
 
 const store = new PairedPeerStore();
 const receivedFiles = [];      // { id, name, size, mime, blobUrl, receivedAt, senderName }
-const onlinePeers = new Set(); // deviceIds actuellement online (via signaling events)
-let selectedPeerId = null;     // peer destination du prochain send
-let pendingFile = null;        // File / Blob en attente d'envoi
-let pendingMode = null;        // 'photo' | 'doc' | 'clipboard'
-let currentPairCode = null;    // code que j'annonce quand j'ouvre le modal pairing
+const onlinePeers = new Set(); // deviceIds actuellement online
+let selectedPeerId = null;
+let pendingFile = null;        // File OU { __clipboardText, name, size, type }
+let currentPairCode = null;
 
 // ---------------------------------------------------------------------------
-// Hello + presence
+// Signaling — presence + pairing
 // ---------------------------------------------------------------------------
 socket.on('connect', async () => {
-  toast('Connecté');
   try {
     const res = await emitAck('hello', {
       deviceId: DeviceIdentity.deviceId,
@@ -56,18 +46,20 @@ socket.on('connect', async () => {
       res.onlinePeers.forEach((p) => onlinePeers.add(p.deviceId || p));
     }
     renderDevices();
+    renderHomeMetrics();
+    toast('Connecté', 'success');
   } catch (err) {
     console.error('[Poof] hello failed', err);
+    toast('Signaling injoignable', 'error');
   }
 });
 
-socket.on('disconnect', () => toast('Déconnecté'));
-socket.on('peer-online',  ({ deviceId }) => { onlinePeers.add(deviceId);    renderDevices(); });
-socket.on('peer-offline', ({ deviceId }) => { onlinePeers.delete(deviceId); renderDevices(); });
-socket.on('peer-unpaired',({ deviceId }) => { store.remove(deviceId);       renderDevices(); });
+socket.on('disconnect', () => toast('Hors ligne', 'error'));
+socket.on('peer-online',   ({ deviceId }) => { onlinePeers.add(deviceId);    renderDevices(); renderHomeMetrics(); });
+socket.on('peer-offline',  ({ deviceId }) => { onlinePeers.delete(deviceId); renderDevices(); renderHomeMetrics(); });
+socket.on('peer-unpaired', ({ deviceId }) => { store.remove(deviceId);       renderDevices(); renderHomeMetrics(); });
 
-// Auto-pair : quand un autre device consume mon code, le serveur me push
-// pair-succeeded pour que j'ajoute le peer à ma liste sans devoir refresh.
+// Auto-pair côté qui a advertise
 socket.on('pair-succeeded', ({ peer }) => {
   if (!peer?.deviceId) return;
   store.upsert({ deviceId: peer.deviceId, name: peer.name, platform: peer.platform });
@@ -75,13 +67,11 @@ socket.on('pair-succeeded', ({ peer }) => {
   currentPairCode = null;
   hidePairingModal();
   renderDevices();
-  toast(`Appairé avec ${peer.name}`);
+  renderHomeMetrics();
+  toast(`Appairé avec ${peer.name}`, 'success');
 });
 
-// ---------------------------------------------------------------------------
-// Réception : le serveur nous push un event dès qu'un fichier nous est destiné.
-// On download direct + ajoute au received tab. Preview auto pour images.
-// ---------------------------------------------------------------------------
+// Réception fichier
 socket.on('relay-file-ready', async ({ fileId, meta }) => {
   try {
     const url = `${SIGNALING_URL}/relay/${encodeURIComponent(fileId)}`;
@@ -100,31 +90,32 @@ socket.on('relay-file-ready', async ({ fileId, meta }) => {
       senderName,
     });
     renderReceived();
-    toast(`Fichier reçu de ${senderName}`);
+    renderHomeMetrics();
+    toast(`Reçu de ${senderName}`, 'success');
     if (navigator.vibrate) navigator.vibrate([40, 30, 60]);
   } catch (err) {
     console.error('[Poof] relay download failed', err);
-    toast('Réception échouée');
+    toast('Réception échouée', 'error');
   }
 });
 
-// Clipboard entrant — l'iPhone envoie du texte via POST /relay/clipboard.
+// Clipboard entrant
 socket.on('clipboard-inbound', async ({ text, senderName }) => {
   if (!text) return;
   try {
     if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
-    toast(`Presse-papiers de ${senderName || 'Device'}`);
+    toast(`Presse-papiers de ${senderName || 'Device'}`, 'success');
   } catch {
-    toast('Presse-papiers reçu (accès bloqué)');
+    toast('Presse-papiers reçu (accès bloqué)', 'info');
   }
 });
 
 // ---------------------------------------------------------------------------
-// Envoi via relay HTTPS
+// Envoi
 // ---------------------------------------------------------------------------
 async function sendFile(file, targetDeviceId) {
   if (!file || !targetDeviceId) return false;
-  toast(`Envoi de ${file.name}…`);
+  toast(`Envoi de ${file.name}…`, 'info');
   try {
     const transferId = crypto.randomUUID();
     const res = await fetch(`${SIGNALING_URL}/relay/upload`, {
@@ -140,12 +131,12 @@ async function sendFile(file, targetDeviceId) {
       body: file,
     });
     if (!res.ok) throw new Error(`upload ${res.status}`);
-    toast(`Envoyé : ${file.name}`);
+    toast(`Envoyé : ${file.name}`, 'success');
     if (navigator.vibrate) navigator.vibrate(30);
     return true;
   } catch (err) {
     console.error('[Poof] send failed', err);
-    toast('Envoi échoué');
+    toast('Envoi échoué', 'error');
     return false;
   }
 }
@@ -164,17 +155,17 @@ async function sendClipboardText(text, targetDeviceId) {
       }),
     });
     if (!res.ok) throw new Error(`clipboard ${res.status}`);
-    toast('Presse-papiers envoyé');
+    toast('Presse-papiers envoyé', 'success');
     return true;
   } catch (err) {
     console.error('[Poof] clipboard send failed', err);
-    toast('Envoi presse-papiers échoué');
+    toast('Envoi échoué', 'error');
     return false;
   }
 }
 
 // ---------------------------------------------------------------------------
-// Pairing (via signaling ACKs)
+// Pairing
 // ---------------------------------------------------------------------------
 async function startAdvertising() {
   try {
@@ -184,13 +175,13 @@ async function startAdvertising() {
     renderPairingModal();
   } catch (err) {
     console.error('[Poof] advertise failed', err);
-    toast('Impossible de générer un code');
+    toast('Impossible de générer un code', 'error');
   }
 }
 
 async function consumeCode(rawCode) {
   const code = String(rawCode || '').toUpperCase().trim();
-  if (code.length < 4) { toast('Code invalide'); return; }
+  if (code.length < 4) { toast('Code invalide', 'error'); return; }
   try {
     const res = await emitAck('pair-consume', { code });
     if (!res?.ok) throw new Error(res?.error || 'consume-failed');
@@ -201,10 +192,11 @@ async function consumeCode(rawCode) {
     currentPairCode = null;
     hidePairingModal();
     renderDevices();
-    toast(`Appairé avec ${peer.name}`);
+    renderHomeMetrics();
+    toast(`Appairé avec ${peer.name}`, 'success');
   } catch (err) {
     console.error('[Poof] consume failed', err);
-    toast('Code invalide ou expiré');
+    toast('Code invalide ou expiré', 'error');
   }
 }
 
@@ -214,10 +206,30 @@ function cancelAdvertising() {
 }
 
 // ---------------------------------------------------------------------------
-// UI rendering (docs/pc/mobile.html)
+// Icônes SF-like par platform (deviceBubble contenu)
+// ---------------------------------------------------------------------------
+function platformIconSvg(platform) {
+  switch ((platform || '').toLowerCase()) {
+    case 'ios':
+      return `<svg viewBox="0 0 24 24" width="24" height="24"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 3v14h10V5H7zm3 15h4v1h-4v-1z"/></svg>`;
+    case 'ipados':
+      return `<svg viewBox="0 0 24 24" width="24" height="24"><path d="M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 3v12h16V6H4z"/></svg>`;
+    case 'macos':
+      return `<svg viewBox="0 0 24 24" width="24" height="24"><path d="M3 4h18a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-8v2h4v2H7v-2h4v-2H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg>`;
+    case 'windows':
+      return `<svg viewBox="0 0 24 24" width="24" height="24"><path d="M3 5.5L11 4v8H3V5.5zm0 7.5h8v8l-8-1.5V13zm9-9l9-1.5V12h-9V4zm0 9h9v8.5L12 20v-7z"/></svg>`;
+    case 'android':
+      return `<svg viewBox="0 0 24 24" width="24" height="24"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 3v14h10V5H7zm3 15h4v1h-4v-1z"/></svg>`;
+    default:
+      return `<svg viewBox="0 0 24 24" width="24" height="24"><circle cx="12" cy="9" r="5"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>`;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
 // ---------------------------------------------------------------------------
 function renderDevices() {
-  const slots = document.querySelectorAll('.device-slot');
+  const slots = document.querySelectorAll('.send-view .device-slot');
   const peers = store.peers.slice(0, 3);
   slots.forEach((slot, i) => {
     const bubble = slot.querySelector('.device-bubble');
@@ -228,14 +240,14 @@ function renderDevices() {
     if (peer) {
       const online = onlinePeers.has(peer.id);
       slot.dataset.peerId = peer.id;
-      bubble.innerHTML = `<svg viewBox="0 0 24 24" width="26" height="26" fill="#fff"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 3v14h10V5H7zm3 15h4v1h-4v-1z"/></svg>`;
+      bubble.innerHTML = platformIconSvg(peer.platform);
       bubble.classList.toggle('online', online);
       label.textContent = peer.name + (online ? '' : ' · off');
     } else {
       delete slot.dataset.peerId;
       bubble.innerHTML = `<span class="plus">+</span>`;
       bubble.classList.remove('online');
-      label.textContent = 'Empty';
+      label.textContent = 'Vide';
     }
   });
   updateSendButtonState();
@@ -245,7 +257,13 @@ function renderReceived() {
   const list = document.querySelector('#received-list');
   if (!list) return;
   if (receivedFiles.length === 0) {
-    list.innerHTML = `<div class="received-empty">Rien pour l'instant. Les fichiers envoyés vers ce device apparaîtront ici.</div>`;
+    list.innerHTML = `
+      <div class="received-empty">
+        <div class="received-empty-icon">
+          <svg viewBox="0 0 24 24" width="30" height="30"><path d="M5 3h14a2 2 0 0 1 2 2v10h-6l-2 3h-4l-2-3H3V5a2 2 0 0 1 2-2zm-2 14h6l2 3h4l2-3h6v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2z"/></svg>
+        </div>
+        Rien pour l'instant.<br>Les fichiers envoyés vers ce device apparaîtront ici.
+      </div>`;
     return;
   }
   list.innerHTML = receivedFiles.map((f) => {
@@ -254,20 +272,35 @@ function renderReceived() {
     const preview = isImage
       ? `<img src="${f.blobUrl}" alt="" class="received-thumb"/>`
       : isVideo
-        ? `<video src="${f.blobUrl}" class="received-thumb" muted></video>`
-        : `<div class="received-thumb received-thumb-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="#fff"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm8 1v5h5"/></svg></div>`;
+        ? `<video src="${f.blobUrl}" class="received-thumb" muted playsinline></video>`
+        : `<div class="received-thumb received-thumb-icon"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm8 1v5h5"/></svg></div>`;
     return `
       <div class="received-row" data-id="${f.id}">
         ${preview}
         <div class="received-meta">
           <div class="received-name">${escapeHtml(f.name)}</div>
-          <div class="received-sub">${escapeHtml(f.senderName)} · ${formatBytes(f.size)}</div>
+          <div class="received-sub">
+            <span class="sender-pill">${escapeHtml(f.senderName)}</span>
+            <span>${formatBytes(f.size)}</span>
+          </div>
         </div>
         <a class="received-dl" href="${f.blobUrl}" download="${escapeHtml(f.name)}" aria-label="Télécharger">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
         </a>
       </div>`;
   }).join('');
+}
+
+function renderHomeMetrics() {
+  const dEl = document.querySelector('#home-metric-devices');
+  const rEl = document.querySelector('#home-metric-received');
+  if (dEl) {
+    const onlineCount = store.peers.filter((p) => onlinePeers.has(p.id)).length;
+    dEl.innerHTML = `${onlineCount}<span class="unit">/ ${store.peers.length} en ligne</span>`;
+  }
+  if (rEl) {
+    rEl.innerHTML = `${receivedFiles.length}<span class="unit">cette session</span>`;
+  }
 }
 
 function renderPairingModal() {
@@ -282,7 +315,7 @@ function renderPairingModal() {
     try {
       new QRCode(qrBox, {
         text: currentPairCode,
-        width: 168, height: 168,
+        width: 160, height: 160,
         colorDark: '#000', colorLight: '#fff',
         correctLevel: QRCode.CorrectLevel.M,
       });
@@ -298,80 +331,104 @@ function hidePairingModal() {
 }
 
 function updateSendButtonState() {
-  const sendBtn = document.querySelector('#send-fab');
-  if (!sendBtn) return;
+  const fab = document.querySelector('#send-fab');
+  if (!fab) return;
   const ready = !!(pendingFile && selectedPeerId);
-  sendBtn.disabled = !ready;
-  sendBtn.classList.toggle('ready', ready);
+  fab.disabled = !ready;
+  fab.classList.toggle('ready', ready);
+  updatePendingPreview();
+}
+
+function updatePendingPreview() {
+  const preview = document.querySelector('#pending-file');
+  const nameEl  = document.querySelector('#pending-file-name');
+  const subEl   = document.querySelector('#pending-file-sub');
+  if (!preview) return;
+  document.querySelectorAll('.chip').forEach((c) => c.classList.remove('armed'));
+  if (!pendingFile) {
+    preview.classList.remove('visible');
+    return;
+  }
+  const label = pendingFile.__clipboardText
+    ? 'Presse-papiers'
+    : (pendingFile.name || 'Fichier');
+  const sub = selectedPeerId
+    ? 'Prêt · tape « Envoyer »'
+    : 'Choisis un destinataire';
+  nameEl.textContent = label;
+  subEl.textContent  = sub;
+  preview.classList.add('visible');
+  // Highlight the armed chip
+  const mode = pendingFile.__clipboardText ? 'Clipboard'
+             : (pendingFile.type || '').startsWith('image/') || (pendingFile.type || '').startsWith('video/') ? 'Photo'
+             : 'Fichier';
+  const armed = document.querySelector(`.chip[aria-label="${mode}"]`);
+  if (armed) armed.classList.add('armed');
 }
 
 // ---------------------------------------------------------------------------
-// Wiring UI events
+// UI wiring
 // ---------------------------------------------------------------------------
 function wireUI() {
-  // Chip photo
   document.querySelector('.chip[aria-label="Photo"]')?.addEventListener('click', () => {
-    pendingMode = 'photo';
     document.querySelector('#file-input-photo').click();
   });
-  // Chip doc
   document.querySelector('.chip[aria-label="Fichier"]')?.addEventListener('click', () => {
-    pendingMode = 'doc';
     document.querySelector('#file-input-doc').click();
   });
-  // Chip clipboard
   document.querySelector('.chip[aria-label="Clipboard"]')?.addEventListener('click', async () => {
-    pendingMode = 'clipboard';
     try {
       const text = await navigator.clipboard?.readText();
-      if (!text) { toast('Presse-papiers vide'); return; }
+      if (!text) { toast('Presse-papiers vide', 'info'); return; }
       pendingFile = { __clipboardText: text, name: 'clipboard.txt', size: text.length, type: 'text/plain' };
-      toast(`Prêt à envoyer : ${text.slice(0, 30)}…`);
       updateSendButtonState();
     } catch {
-      toast('Accès presse-papiers refusé');
+      toast('Accès presse-papiers refusé', 'error');
     }
   });
 
   document.querySelector('#file-input-photo')?.addEventListener('change', onFilePicked);
   document.querySelector('#file-input-doc')?.addEventListener('change', onFilePicked);
 
-  // Tap sur un slot device — vide → pairing modal, plein → select
-  document.querySelectorAll('.device-slot').forEach((slot) => {
-    slot.addEventListener('click', () => {
-      const peerId = slot.dataset.peerId;
-      if (!peerId) { startAdvertising(); return; }
-      selectedPeerId = (selectedPeerId === peerId) ? null : peerId;
-      renderDevices();
-    });
-  });
-
-  // Send FAB
-  document.querySelector('#send-fab')?.addEventListener('click', async () => {
-    if (!pendingFile || !selectedPeerId) return;
-    if (pendingFile.__clipboardText) {
-      await sendClipboardText(pendingFile.__clipboardText, selectedPeerId);
-    } else {
-      await sendFile(pendingFile, selectedPeerId);
-    }
-    pendingFile = null; pendingMode = null;
+  document.querySelector('#pending-file-clear')?.addEventListener('click', () => {
+    pendingFile = null;
     updateSendButtonState();
   });
 
-  // Tab bar navigation
+  // Delegate clicks sur toute la .send-view pour les slots devices (avec re-render)
+  document.querySelector('.send-view')?.addEventListener('click', (e) => {
+    const slot = e.target.closest('.device-slot');
+    if (!slot) return;
+    const peerId = slot.dataset.peerId;
+    if (!peerId) { startAdvertising(); return; }
+    selectedPeerId = (selectedPeerId === peerId) ? null : peerId;
+    renderDevices();
+  });
+
+  document.querySelector('#send-fab')?.addEventListener('click', async () => {
+    if (!pendingFile || !selectedPeerId) return;
+    const isClipboard = !!pendingFile.__clipboardText;
+    const ok = isClipboard
+      ? await sendClipboardText(pendingFile.__clipboardText, selectedPeerId)
+      : await sendFile(pendingFile, selectedPeerId);
+    if (ok) {
+      pendingFile = null;
+      updateSendButtonState();
+    }
+  });
+
   document.querySelectorAll('.tab-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
       const view = btn.dataset.view || 'send';
       document.body.dataset.view = view;
+      if (view === 'home') renderHomeMetrics();
     });
   });
 
-  // Pairing modal — bouton Consume, bouton Close
   document.querySelector('#pairing-submit')?.addEventListener('click', () => {
-    const val = document.querySelector('#pairing-input')?.value;
-    consumeCode(val);
+    consumeCode(document.querySelector('#pairing-input')?.value);
   });
   document.querySelector('#pairing-input')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') consumeCode(e.target.value);
@@ -380,32 +437,54 @@ function wireUI() {
     cancelAdvertising();
     hidePairingModal();
   });
+  document.querySelector('#pairing-copy')?.addEventListener('click', async () => {
+    if (!currentPairCode) return;
+    try {
+      await navigator.clipboard.writeText(currentPairCode);
+      toast('Code copié', 'success');
+    } catch {
+      toast('Copie refusée', 'error');
+    }
+  });
+  // Fermer le modal au tap sur l'overlay
+  document.querySelector('#pairing-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'pairing-modal') {
+      cancelAdvertising();
+      hidePairingModal();
+    }
+  });
 }
 
 function onFilePicked(e) {
   const file = e.target.files?.[0];
   if (!file) return;
   pendingFile = file;
-  toast(`Prêt à envoyer : ${file.name}`);
   updateSendButtonState();
   e.target.value = '';
 }
 
 // ---------------------------------------------------------------------------
-// Toast helper
+// Toast (typed)
 // ---------------------------------------------------------------------------
 let toastTimer = null;
-function toast(msg) {
+const TOAST_ICONS = {
+  success: `<svg viewBox="0 0 24 24" width="14" height="14"><path d="M5 12l5 5L20 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  error:   `<svg viewBox="0 0 24 24" width="14" height="14"><path d="M6 6l12 12M6 18L18 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`,
+  info:    `<svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 8v.01M12 12v5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+};
+function toast(msg, type = 'info') {
   let el = document.querySelector('#toast');
   if (!el) {
     el = document.createElement('div');
     el.id = 'toast';
     document.body.appendChild(el);
   }
-  el.textContent = msg;
-  el.classList.add('show');
+  const icon = TOAST_ICONS[type] || TOAST_ICONS.info;
+  el.className = `type-${type}`;
+  el.innerHTML = `<span class="toast-icon">${icon}</span><span>${escapeHtml(msg)}</span>`;
+  requestAnimationFrame(() => el.classList.add('show'));
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
 }
 
 // ---------------------------------------------------------------------------
@@ -433,10 +512,11 @@ function escapeHtml(s) {
 }
 
 // ---------------------------------------------------------------------------
-// Init
+// Boot
 // ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   wireUI();
   renderDevices();
   renderReceived();
+  renderHomeMetrics();
 });
