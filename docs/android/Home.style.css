@@ -1497,6 +1497,18 @@ body {
 }
 .send-slot__glyph--laptop { font-size: 55px; line-height: 66px; }
 
+/* Slot pairé actif : ring bleu autour du cercle + label bleu */
+.send-slot--active .send-slot__circle {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        0 0 0 3px rgba(10, 132, 255, 0.90),
+        0 0 12px rgba(10, 132, 255, 0.55);
+}
+.send-slot--active .send-slot__label {
+    color: #4AA8FF;
+    text-shadow: 0 0 6px rgba(74, 168, 255, 0.4);
+}
+
 /* SF Symbol plus SVG dans les cercles Devices — carré ~26px centré */
 .send-slot__icon {
     width: 26px;

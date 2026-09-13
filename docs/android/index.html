@@ -811,6 +811,19 @@
             alert("QR scanner: camera access will be added in Phase 3.");
         }
 
+        // Sélection d'un peer via tap sur son slot Device — devient la cible
+        if (action === "select-peer") {
+            const peerId = target.dataset.peerId;
+            if (!peerId) return;
+            window.Poof = window.Poof || {};
+            Poof.activePeerId = peerId;
+            haptic(6);
+            document.querySelectorAll(".send-slot").forEach((s) => {
+                s.classList.toggle("send-slot--active", s.dataset.peerId === peerId);
+            });
+            console.log("[Poof] active peer set to:", peerId);
+        }
+
         // My code : demande un pair code au serveur via pairAdvertise
         if (action === "open-my-code") {
             requestPairCode();
@@ -1500,8 +1513,15 @@
         job.state = "sending";
         updateJobVisual(job);
 
-        // Pas de peer pairé = impossible d'envoyer
-        const peer = window.Poof?.peers?.peers?.[0];
+        // Choix du peer cible :
+        //   • Priorité 1 : peer sélectionné manuellement (tap slot → activePeerId)
+        //   • Priorité 2 : dernier peer pairé (le plus récent, souvent celui qu'on veut)
+        //   • Priorité 3 : premier peer disponible (fallback)
+        const allPeers = window.Poof?.peers?.peers || [];
+        const activeId = window.Poof?.activePeerId;
+        const peer = (activeId && allPeers.find((p) => p.id === activeId)) ||
+                     allPeers[allPeers.length - 1] ||
+                     allPeers[0];
         if (!peer) {
             console.warn("[Poof] Aucun device pairé — impossible d'envoyer");
             job.state = "failed";
