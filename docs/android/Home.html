@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#005EFF">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Poof">
+    <title>Poof — Send Everywhere</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="stylesheet" href="Home.style.css?v=4">
+    <!-- Socket.IO client — bridge signaling vers poof-fgb8.onrender.com (Phase 3) -->
+    <script src="vendor/socket.io.min.js"></script>
+    <script>
+        // Dev : unregister tout service worker existant pour éviter le cache stale
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.getRegistrations().then((regs) => {
+                regs.forEach((r) => r.unregister());
+            });
+            if (window.caches) {
+                caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
+            }
+        }
+    </script>
+</head>
+<body>
+
+<!-- === Frame 1 : 402.5 × 884 (design Xcode PoofHomeView pixel-perfect) === -->
+<div class="frame-viewport">
+<div class="frame">
+
+    <!-- Background : gradient bleu #005EFF → gris #797979 -->
+    <div class="bg-gradient"></div>
+
+    <!-- Header : "Poof" wordmark + "beta" badge + cloud outline top-right -->
+    <div class="header-poof">Poof</div>
+    <div class="header-beta">beta</div>
+    <svg class="header-cloud" xmlns="http://www.w3.org/2000/svg" viewBox="-1.5 -1.5 27.1664 19.341" fill="none" stroke="white" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+        <path d="M5.19871 16.0206L18.0879 16.0206C21.5156 16.0206 24.1664 13.4186 24.1664 10.0797C24.1664 6.69203 21.4738 4.13797 17.8624 4.14463C16.5329 1.51947 14.1248 0 11.1029 0C7.19134 0 3.94875 2.93859 3.5209 6.87586C1.47816 7.50347 0.143379 9.23195 0.143379 11.3551C0.143379 14.084 2.19363 16.0206 5.19871 16.0206Z"/>
+    </svg>
+
+    <!-- =========================================================
+         PAGES : Home + Send + Received (tab switching)
+         ========================================================= -->
+    <div class="pages">
+
+    <!-- ============ PAGE HOME ============ -->
+    <section class="page page--home page--active" id="page-home">
+
+    <!-- Card 1 : Transfer everywhere (370x394 exact Swift .frame) -->
+    <div class="card-transfer">
+        <!-- Overlay diagonal noir gauche/droite (Swift LinearGradient leading→trailing) -->
+        <div class="card-overlay"></div>
+
+        <!-- Title top -->
+        <div class="card-transfer__title">Transfer everywhere</div>
+
+        <!-- Dark diamond glow behind cloud (Swift HorizontalDiamond blur 50) -->
+        <div class="card-transfer__cloud-glow"></div>
+
+        <!-- Cloud fill icon 96pt (Swift Image(cloud.fill) size 96) -->
+        <svg class="card-transfer__cloud" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24.1664 16.341" fill="white" aria-hidden="true">
+            <path d="M5.19871 16.0206L18.0879 16.0206C21.5156 16.0206 24.1664 13.4186 24.1664 10.0797C24.1664 6.69203 21.4738 4.13797 17.8624 4.14463C16.5329 1.51947 14.1248 0 11.1029 0C7.19134 0 3.94875 2.93859 3.5209 6.87586C1.47816 7.50347 0.143379 9.23195 0.143379 11.3551C0.143379 14.084 2.19363 16.0206 5.19871 16.0206Z"/>
+        </svg>
+
+        <!-- White halo blurred behind "Poof" text (Swift Rectangle 230x33 blur 20) -->
+        <div class="card-transfer__brand-glow"></div>
+
+        <!-- "Poof" wordmark 50pt semibold -->
+        <div class="card-transfer__brand">Poof</div>
+
+        <!-- Bottom : Discover exclusivity + underline + price -->
+        <div class="card-transfer__cta-title">Discover exclusivity</div>
+        <div class="card-transfer__cta-underline"></div>
+        <div class="card-transfer__cta-price">Starts from 4,99€</div>
+    </div>
+
+    <!-- Card 2 : Help & Feedback (370x194 exact Swift SecondCard) -->
+    <div class="card-help" data-action="open-help" role="button" tabindex="0">
+        <div class="card-overlay"></div>
+        <div class="card-help__title">Help &amp; Feedback</div>
+        <svg class="card-help__bubbles" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 31.6873 25.8243" fill="white" aria-hidden="true">
+            <path d="M22.7068 4.85535L16.4843 4.85535C12.8325 4.85535 10.5861 7.11734 10.5861 10.6849L10.5861 16.409C10.5861 17.5365 10.8195 18.5294 11.259 19.3557L8.63089 21.6698C8.02943 22.1967 7.66324 22.432 7.16564 22.432C6.46697 22.432 6.0515 21.9442 6.0515 21.1674L6.0515 18.5006L5.70076 18.5006C2.92769 18.5006 1.13494 16.7592 1.13494 13.8327L1.13494 6.18099C1.13494 3.25445 2.85316 1.50959 5.80945 1.50959L18.1733 1.50959C20.6527 1.50959 22.2562 2.734 22.7068 4.85535Z"/>
+            <path d="M16.4843 20.6305L19.7504 20.6305L23.1736 23.5725C23.7818 24.0896 24.1413 24.3347 24.6322 24.3347C25.3309 24.3347 25.7428 23.8468 25.7428 23.0767L25.7428 20.6305L25.904 20.6305C28.645 20.6305 30.188 19.0826 30.188 16.409L30.188 10.6849C30.188 7.93937 28.5985 6.34496 25.7891 6.34496L16.4843 6.34496C13.6718 6.34496 12.0823 7.93937 12.0823 10.6849L12.0823 16.409C12.0823 19.0893 13.6718 20.6305 16.4843 20.6305Z"/>
+        </svg>
+    </div>
+
+    </section>
+    <!-- ============ FIN PAGE HOME ============ -->
+
+    <!-- ============ PAGE SEND (Figma pixel-perfect) ============ -->
+    <section class="page page--send" id="page-send">
+
+        <!-- Bande de nuages décorative (Figma image 2) — même PNG que iOS HeroPhoto -->
+        <img class="send-clouds" src="clouds-hero.png" alt="" aria-hidden="true">
+
+        <!-- Hero row : device source (gauche) → cloud central → device destination (droite) -->
+        <div class="send-hero">
+            <!-- Vector 2 : subtle rect blur behind cloud (Figma D9D9D9 17% blur) -->
+            <div class="send-hero__glow"></div>
+
+            <!-- Left device : iPhone icon + label (dim, source) -->
+            <div class="send-hero__device send-hero__device--left">
+                <svg class="send-hero__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14.1492 21.9169" aria-hidden="true">
+                    <path d="M3.34888 19.614C2.60575 19.614 2.17471 19.2087 2.17471 18.4926L2.17471 3.39231C2.17471 2.67627 2.60575 2.27098 3.34888 2.27098L10.4488 2.27098C11.1821 2.27098 11.6132 2.68249 11.6132 3.39542L11.6132 18.4895C11.6132 19.2024 11.1821 19.614 10.4488 19.614Z" fill="white" fill-opacity="0.2125"/>
+                    <path d="M2.92642 21.8849L10.936 21.8849C12.6458 21.8849 13.7879 20.7575 13.7879 19.0726L13.7879 2.81234C13.7879 1.12431 12.6458 0 10.936 0L2.92642 0C1.17314 0 0 1.12431 0 2.80923L0 19.0757C0 20.7575 1.17314 21.8849 2.92642 21.8849ZM3.34888 19.614C2.60575 19.614 2.17471 19.2087 2.17471 18.4926L2.17471 3.39231C2.17471 2.67627 2.60575 2.27098 3.34888 2.27098L10.4488 2.27098C11.1821 2.27098 11.6132 2.68249 11.6132 3.39542L11.6132 18.4895C11.6132 19.2024 11.1821 19.614 10.4488 19.614ZM4.76796 18.8172L9.03325 18.8172C9.33418 18.8172 9.54768 18.6099 9.54768 18.2961C9.54768 17.9792 9.33418 17.7755 9.03325 17.7755L4.76796 17.7755C4.46702 17.7755 4.24376 17.9792 4.24376 18.2961C4.24376 18.6099 4.46702 18.8172 4.76796 18.8172ZM5.63489 4.61146L8.15965 4.61146C8.60883 4.61146 8.95194 4.26836 8.95194 3.81252C8.95194 3.36334 8.60573 3.01713 8.15965 3.01713L5.63489 3.01713C5.18216 3.01713 4.83595 3.36334 4.83595 3.81252C4.83595 4.26836 5.17905 4.61146 5.63489 4.61146Z" fill="white" fill-opacity="0.85"/>
+                </svg>
+                <div class="send-hero__label">iPhone</div>
+            </div>
+
+            <!-- Central cloud circle : morph cloud → photo/doc/clipboard selon le chip tapé
+                 (spring anim iOS response 0.4 damping 0.75 — cf PoofSendView.centerIcon) -->
+            <div class="send-cloud" id="send-cloud" data-icon="cloud" role="button" tabindex="0" aria-label="Send">
+                <!-- Icon layer : cloud (par défaut) -->
+                <svg class="send-cloud__icon send-cloud__icon--cloud" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24.1664 16.341" aria-hidden="true">
+                    <path d="M5.19871 16.0206L18.0879 16.0206C21.5156 16.0206 24.1664 13.4186 24.1664 10.0797C24.1664 6.69203 21.4738 4.13797 17.8624 4.14463C16.5329 1.51947 14.1248 0 11.1029 0C7.19134 0 3.94875 2.93859 3.5209 6.87586C1.47816 7.50347 0.143379 9.23195 0.143379 11.3551C0.143379 14.084 2.19363 16.0206 5.19871 16.0206Z" fill="white" fill-opacity="0.95"/>
+                </svg>
+                <!-- photo.fill -->
+                <svg class="send-cloud__icon send-cloud__icon--photo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23.5688 18.4257" aria-hidden="true">
+                    <path d="M23.2075 3.2882L23.2075 15.1504C23.2075 17.2894 22.0645 18.4257 19.8988 18.4257L3.30863 18.4257C1.14961 18.4257 0 17.2894 0 15.1504L0 3.2882C0 1.14605 1.14961 0.0062108 3.30863 0.0062108L19.8988 0.0062108C22.0645 0.0062108 23.2075 1.14605 23.2075 3.2882ZM13.8845 9.31281L9.29724 13.3913L7.45685 11.7365C7.03027 11.3454 6.54464 11.1532 6.07545 11.1532C5.62091 11.1532 5.19564 11.3423 4.76906 11.717L2.17471 13.9863L2.17471 14.8864C2.17471 15.744 2.68833 16.2576 3.53933 16.2576L19.6748 16.2576C20.4845 16.2576 21.0327 15.744 21.0327 14.8966L21.0327 13.1132L16.9349 9.32258C16.4915 8.90531 15.9442 8.70644 15.4195 8.70644C14.8721 8.70644 14.3475 8.89555 13.8845 9.31281ZM5.37481 6.92244C5.37481 8.2723 6.47743 9.37492 7.82419 9.37492C9.16429 9.37492 10.2669 8.2723 10.2669 6.92244C10.2669 5.58545 9.16429 4.47307 7.82419 4.47307C6.47743 4.47307 5.37481 5.58545 5.37481 6.92244Z" fill="white" fill-opacity="0.95"/>
+                </svg>
+                <!-- doc.fill -->
+                <svg class="send-cloud__icon send-cloud__icon--doc" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 17.3523 21.2951" aria-hidden="true">
+                    <path d="M3.28199 21.2915L13.709 21.2915C15.8578 21.2915 16.991 20.1419 16.991 17.9864L16.991 9.33974L9.51384 9.33974C8.31353 9.33974 7.72093 8.74714 7.72093 7.54372L7.72093 0L3.28199 0C1.14295 0 0 1.15627 0 3.31173L0 17.9864C0 20.1486 1.13629 21.2915 3.28199 21.2915ZM9.79778 7.84347L16.8924 7.84347C16.8462 7.37787 16.4916 6.93135 15.9545 6.38451L10.6606 1.0209C10.1458 0.50246 9.68946 0.150938 9.2172 0.0950003L9.2172 7.26955C9.2172 7.65216 9.40851 7.84347 9.79778 7.84347Z" fill="white" fill-opacity="0.95"/>
+                </svg>
+                <!-- doc.on.clipboard.fill -->
+                <svg class="send-cloud__icon send-cloud__icon--clipboard" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23.9199 28.0171" aria-hidden="true">
+                    <path d="M22.069 4.78446L22.069 18.1036C22.069 20.256 20.9327 21.4122 18.787 21.4122L18.6612 21.4122L18.6612 15.7338C18.6612 14.1732 18.3701 13.0512 17.2 11.8611L12.1125 6.70388C10.8252 5.39353 9.87313 5.09529 8.25751 5.09529L6.39363 5.09529L6.39363 4.78446C6.39363 2.62234 7.52991 1.47584 9.67561 1.47584L18.787 1.47584C20.9327 1.47584 22.069 2.62234 22.069 4.78446ZM11.9727 3.55187C11.5057 3.55187 11.2856 3.90605 11.2856 4.20568L11.2856 4.42939C11.2856 4.76583 11.5337 5.08319 11.9727 5.08319L16.493 5.08319C16.9222 5.08319 17.1801 4.76583 17.1801 4.42939L17.1801 4.20568C17.1801 3.90605 16.9533 3.55187 16.493 3.55187Z" fill="white" fill-opacity="0.95"/>
+                    <path d="M1.48961 23.2158C1.48961 25.3779 2.63255 26.5244 4.77159 26.5244L13.883 26.5244C16.0287 26.5244 17.1649 25.3681 17.1649 23.2158L17.1649 15.7369L10.125 15.7369C8.88071 15.7369 8.25751 15.1071 8.25751 13.8695L8.25751 6.588L4.77159 6.588C2.63255 6.588 1.48961 7.7345 1.48961 9.89663ZM10.2984 14.2407L16.9865 14.2344C16.8667 13.7977 16.5924 13.3716 16.1409 12.9068L11.0534 7.74962C10.5922 7.28532 10.1932 6.97372 9.75378 6.83835L9.75378 13.6836C9.75378 14.0467 9.94464 14.2407 10.2984 14.2407Z" fill="white" fill-opacity="0.95"/>
+                </svg>
+                <!-- Badge compteur de fichiers sélectionnés -->
+                <div class="send-cloud__count" id="send-cloud-count" aria-live="polite"></div>
+            </div>
+
+            <!-- Right device : MacBook icon + label (dim, destination) -->
+            <div class="send-hero__device send-hero__device--right">
+                <svg class="send-hero__icon send-hero__icon--laptop" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29.5626 16.6721" aria-hidden="true">
+                    <path d="M5.5287 13.9829L5.5287 3.07274C5.5287 2.46637 5.82567 2.18182 6.41961 2.18182L22.7817 2.18182C23.3725 2.18182 23.6695 2.46637 23.6695 3.07274L23.6695 13.9829Z" fill="white" fill-opacity="0.2125"/>
+                    <path d="M11.4558 2.18182L11.7092 2.18182C11.8588 2.18182 11.9401 2.25639 11.9401 2.42241L11.9401 2.61057C11.9401 3.05178 12.2383 3.34696 12.6733 3.34696L16.5382 3.34696C16.9727 3.34696 17.2514 3.05178 17.2514 2.61057L17.2514 2.42241C17.2514 2.25639 17.3327 2.18182 17.4987 2.18182L17.7522 2.18182L17.7522 1.00173L11.4558 1.00173ZM0 15.3259C0 16.0654 0.609841 16.6721 1.33953 16.6721L27.8586 16.6721C28.5914 16.6721 29.2013 16.0654 29.2013 15.3259C29.2013 14.5865 28.5914 13.9829 27.8586 13.9829L25.8442 13.9829L25.8442 2.5246C25.8442 0.893453 24.9379 0.00710964 23.3134 0.00710964L5.8879 0.00710964C4.31003 0.00710964 3.35398 0.893453 3.35398 2.5246L3.35398 13.9829L1.33953 13.9829C0.609841 13.9829 0 14.5865 0 15.3259ZM5.5287 13.9829L5.5287 3.07274C5.5287 2.46637 5.82567 2.18182 6.41961 2.18182L22.7817 2.18182C23.3725 2.18182 23.6695 2.46637 23.6695 3.07274L23.6695 13.9829Z" fill="white" fill-opacity="0.85"/>
+                </svg>
+                <div class="send-hero__label">MacBook</div>
+            </div>
+        </div>
+
+        <!-- File inputs cachés — natifs pour ouvrir photos/files picker au tap chip -->
+        <input type="file" id="picker-photo" class="send-picker" accept="image/*,video/*" multiple hidden>
+        <input type="file" id="picker-doc" class="send-picker" multiple hidden>
+
+        <!-- Cloud Panel : preview des fichiers sélectionnés (iOS cloudPanelContent
+             au-dessus des chips, glass rect 370×230, spring anim scale + opacity + move) -->
+        <div class="send-preview" id="send-preview" aria-hidden="true">
+            <!-- Header bar iOS : "X/Y sent" + failed count + spinner pendant l'envoi -->
+            <div class="send-preview__header" id="send-preview-header" hidden>
+                <div class="send-preview__spinner"></div>
+                <div class="send-preview__progress-text" id="send-preview-progress-text">0/0 sent</div>
+                <div class="send-preview__failed" id="send-preview-failed" hidden>
+                    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h2v-2h-2v2zm0-4h2V7h-2v6z"/></svg>
+                    <span id="send-preview-failed-count">0 failed</span>
+                </div>
+            </div>
+            <button class="send-preview__close" data-action="clear-selection" type="button" aria-label="Clear selection">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
+            <!-- Mode files : scroll horizontal de tiles (photo / doc) -->
+            <div class="send-preview__scroller" id="send-preview-scroller">
+                <!-- Tiles injectées via JS -->
+            </div>
+            <!-- Mode clipboard : single content view (empty state OU text/URL/image payload) -->
+            <div class="send-preview__clipboard" id="send-preview-clipboard" hidden>
+                <!-- Contenu injecté via JS : soit .clip-empty (rien à envoyer) soit .clip-preview -->
+            </div>
+        </div>
+
+        <!-- Card : Type chips (photos / files / history) -->
+        <div class="send-types">
+            <div class="send-type send-type--photo" data-chip="photo" role="button" tabindex="0">
+                <svg class="send-type__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23.5688 18.4257" aria-hidden="true">
+                    <path d="M23.2075 3.2882L23.2075 15.1504C23.2075 17.2894 22.0645 18.4257 19.8988 18.4257L3.30863 18.4257C1.14961 18.4257 0 17.2894 0 15.1504L0 3.2882C0 1.14605 1.14961 0.0062108 3.30863 0.0062108L19.8988 0.0062108C22.0645 0.0062108 23.2075 1.14605 23.2075 3.2882ZM13.8845 9.31281L9.29724 13.3913L7.45685 11.7365C7.03027 11.3454 6.54464 11.1532 6.07545 11.1532C5.62091 11.1532 5.19564 11.3423 4.76906 11.717L2.17471 13.9863L2.17471 14.8864C2.17471 15.744 2.68833 16.2576 3.53933 16.2576L19.6748 16.2576C20.4845 16.2576 21.0327 15.744 21.0327 14.8966L21.0327 13.1132L16.9349 9.32258C16.4915 8.90531 15.9442 8.70644 15.4195 8.70644C14.8721 8.70644 14.3475 8.89555 13.8845 9.31281ZM5.37481 6.92244C5.37481 8.2723 6.47743 9.37492 7.82419 9.37492C9.16429 9.37492 10.2669 8.2723 10.2669 6.92244C10.2669 5.58545 9.16429 4.47307 7.82419 4.47307C6.47743 4.47307 5.37481 5.58545 5.37481 6.92244Z" fill="white" fill-opacity="0.85"/>
+                </svg>
+            </div>
+            <div class="send-type send-type--file" data-chip="doc" role="button" tabindex="0">
+                <svg class="send-type__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 17.3523 21.2951" aria-hidden="true">
+                    <path d="M3.28199 21.2915L13.709 21.2915C15.8578 21.2915 16.991 20.1419 16.991 17.9864L16.991 9.33974L9.51384 9.33974C8.31353 9.33974 7.72093 8.74714 7.72093 7.54372L7.72093 0L3.28199 0C1.14295 0 0 1.15627 0 3.31173L0 17.9864C0 20.1486 1.13629 21.2915 3.28199 21.2915ZM9.79778 7.84347L16.8924 7.84347C16.8462 7.37787 16.4916 6.93135 15.9545 6.38451L10.6606 1.0209C10.1458 0.50246 9.68946 0.150938 9.2172 0.0950003L9.2172 7.26955C9.2172 7.65216 9.40851 7.84347 9.79778 7.84347Z" fill="white" fill-opacity="0.85"/>
+                </svg>
+            </div>
+            <div class="send-type send-type--history" data-chip="clipboard" role="button" tabindex="0">
+                <svg class="send-type__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 23.9199 28.0171" aria-hidden="true">
+                    <path d="M22.069 4.78446L22.069 18.1036C22.069 20.256 20.9327 21.4122 18.787 21.4122L18.6612 21.4122L18.6612 15.7338C18.6612 14.1732 18.3701 13.0512 17.2 11.8611L12.1125 6.70388C10.8252 5.39353 9.87313 5.09529 8.25751 5.09529L6.39363 5.09529L6.39363 4.78446C6.39363 2.62234 7.52991 1.47584 9.67561 1.47584L18.787 1.47584C20.9327 1.47584 22.069 2.62234 22.069 4.78446ZM11.9727 3.55187C11.5057 3.55187 11.2856 3.90605 11.2856 4.20568L11.2856 4.42939C11.2856 4.76583 11.5337 5.08319 11.9727 5.08319L16.493 5.08319C16.9222 5.08319 17.1801 4.76583 17.1801 4.42939L17.1801 4.20568C17.1801 3.90605 16.9533 3.55187 16.493 3.55187Z" fill="white" fill-opacity="0.85"/>
+                    <path d="M1.48961 23.2158C1.48961 25.3779 2.63255 26.5244 4.77159 26.5244L13.883 26.5244C16.0287 26.5244 17.1649 25.3681 17.1649 23.2158L17.1649 15.7369L10.125 15.7369C8.88071 15.7369 8.25751 15.1071 8.25751 13.8695L8.25751 6.588L4.77159 6.588C2.63255 6.588 1.48961 7.7345 1.48961 9.89663ZM10.2984 14.2407L16.9865 14.2344C16.8667 13.7977 16.5924 13.3716 16.1409 12.9068L11.0534 7.74962C10.5922 7.28532 10.1932 6.97372 9.75378 6.83835L9.75378 13.6836C9.75378 14.0467 9.94464 14.2407 10.2984 14.2407Z" fill="white" fill-opacity="0.85"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Poof Premium upsell bar (iOS PremiumUpsellBar exact : sparkles + title + subtitle + chevron) -->
+        <button class="send-premium" type="button" aria-label="Poof Premium">
+            <div class="send-premium__icon">
+                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M12 2.2l1.55 4.65 4.65 1.55-4.65 1.55L12 14.6l-1.55-4.65L5.8 8.4l4.65-1.55L12 2.2zM5.9 14.6l.85 2.55 2.55.85-2.55.85L5.9 21.4l-.85-2.55L2.5 18l2.55-.85L5.9 14.6zM18.2 13.4l.7 2.1 2.1.7-2.1.7-.7 2.1-.7-2.1-2.1-.7 2.1-.7.7-2.1z"/>
+                </svg>
+            </div>
+            <div class="send-premium__text">
+                <div class="send-premium__title">Poof Premium</div>
+                <div class="send-premium__sub">Secure · Track · Boost · Offline · Studio</div>
+            </div>
+            <svg class="send-premium__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M9 5l7 7-7 7"/>
+            </svg>
+        </button>
+
+        <!-- Card : Device slots (paired devices grid) — plus SF Symbol dans les 3 cercles -->
+        <div class="send-devices">
+            <div class="send-slot" data-action="open-add-device" role="button" tabindex="0">
+                <div class="send-slot__circle">
+                    <svg class="send-slot__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16.8845 16.5267" aria-hidden="true">
+                        <path d="M9.52557 15.269L9.52557 1.25732C9.52557 0.568082 8.95439 0 8.2616 0C7.56881 0 7.00739 0.568082 7.00739 1.25732L7.00739 15.269C7.00739 15.9551 7.56881 16.5232 8.2616 16.5232C8.95439 16.5232 9.52557 15.9551 9.52557 15.269ZM1.25732 9.51891L15.269 9.51891C15.9551 9.51891 16.5232 8.95439 16.5232 8.2616C16.5232 7.56881 15.9551 6.99762 15.269 6.99762L1.25732 6.99762C0.568082 6.99762 0 7.56881 0 8.2616C0 8.95439 0.568082 9.51891 1.25732 9.51891Z" fill="white" fill-opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="send-slot__label">Device 1</div>
+            </div>
+            <div class="send-slot" data-action="open-add-device" role="button" tabindex="0">
+                <div class="send-slot__circle">
+                    <svg class="send-slot__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16.8845 16.5267" aria-hidden="true">
+                        <path d="M9.52557 15.269L9.52557 1.25732C9.52557 0.568082 8.95439 0 8.2616 0C7.56881 0 7.00739 0.568082 7.00739 1.25732L7.00739 15.269C7.00739 15.9551 7.56881 16.5232 8.2616 16.5232C8.95439 16.5232 9.52557 15.9551 9.52557 15.269ZM1.25732 9.51891L15.269 9.51891C15.9551 9.51891 16.5232 8.95439 16.5232 8.2616C16.5232 7.56881 15.9551 6.99762 15.269 6.99762L1.25732 6.99762C0.568082 6.99762 0 7.56881 0 8.2616C0 8.95439 0.568082 9.51891 1.25732 9.51891Z" fill="white" fill-opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="send-slot__label">Device 2</div>
+            </div>
+            <div class="send-slot" data-action="open-add-device" role="button" tabindex="0">
+                <div class="send-slot__circle">
+                    <svg class="send-slot__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16.8845 16.5267" aria-hidden="true">
+                        <path d="M9.52557 15.269L9.52557 1.25732C9.52557 0.568082 8.95439 0 8.2616 0C7.56881 0 7.00739 0.568082 7.00739 1.25732L7.00739 15.269C7.00739 15.9551 7.56881 16.5232 8.2616 16.5232C8.95439 16.5232 9.52557 15.9551 9.52557 15.269ZM1.25732 9.51891L15.269 9.51891C15.9551 9.51891 16.5232 8.95439 16.5232 8.2616C16.5232 7.56881 15.9551 6.99762 15.269 6.99762L1.25732 6.99762C0.568082 6.99762 0 7.56881 0 8.2616C0 8.95439 0.568082 9.51891 1.25732 9.51891Z" fill="white" fill-opacity="0.85"/>
+                    </svg>
+                </div>
+                <div class="send-slot__label">Device 3</div>
+            </div>
+        </div>
+
+    </section>
+    <!-- ============ FIN PAGE SEND ============ -->
+
+    <!-- ============ PAGE RECEIVED — pixel-perfect iOS PoofReceivedView ============ -->
+    <section class="page page--received" id="page-received">
+        <!-- Nuages décoratifs en BAS (iOS met le HeroPhoto en bottom overlay 600px opacity 75%) -->
+        <img class="received-clouds" src="clouds-hero.png" alt="" aria-hidden="true">
+
+        <!-- Panel glass 370×480, offset -40, corner 34 continuous -->
+        <div class="received-panel" id="received-panel">
+            <div class="received-header">
+                <div class="received-header__title">Last 24h</div>
+                <div class="received-header__count-sep" id="received-count-wrap" hidden>
+                    <span class="received-header__sep">·</span>
+                    <span class="received-header__count" id="received-count">0</span>
+                </div>
+                <div class="received-header__spacer"></div>
+                <button class="received-header__history" type="button" data-action="open-history">
+                    <span>All history</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+            <div class="received-content" id="received-content">
+                <!-- Empty state par défaut : icône tray.and.arrow.down dans cercle glass -->
+                <div class="received-empty" id="received-empty">
+                    <div class="received-empty__icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                        </svg>
+                    </div>
+                    <div class="received-empty__title">Nothing yet</div>
+                    <div class="received-empty__sub">Files received in the last 24 hours land here.</div>
+                </div>
+                <!-- Grid 3-col injecté via JS quand des fichiers arrivent -->
+                <div class="received-grid" id="received-grid" hidden></div>
+            </div>
+            <!-- Ripple layer (arrival dopamine) -->
+            <div class="received-ripple" id="received-ripple" aria-hidden="true"></div>
+        </div>
+
+        <!-- Flash blanc bref à l'arrivée d'un fichier -->
+        <div class="received-flash" id="received-flash" aria-hidden="true"></div>
+    </section>
+
+    </div>
+    <!-- ============ FIN PAGES ============ -->
+
+    <!-- Tab Bar bottom (Figma design) -->
+    <div class="tab-bar-figma">
+        <div class="tab-buttons">
+            <div class="tab-btn tab-btn--active" data-tab="home">
+                <div class="tab-selection"></div>
+                <svg class="tab-icon tab-icon--active" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 3l9 8h-2v10h-5v-6h-4v6H5V11H3l9-8z"/>
+                </svg>
+                <div class="tab-label tab-label--active">Home</div>
+            </div>
+            <div class="tab-btn" data-tab="send">
+                <div class="tab-selection"></div>
+                <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+                <div class="tab-label">Send</div>
+            </div>
+            <div class="tab-btn" data-tab="received">
+                <div class="tab-selection"></div>
+                <svg class="tab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+                </svg>
+                <div class="tab-label">Received</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         SHEET : Help & Feedback (iOS PoofHelpMenu pixel-perfect)
+         Ouvert via [data-action="open-help"], fermé via [data-action="close-help"]
+         ============================================================ -->
+    <div class="sheet sheet--help" id="sheet-help" aria-hidden="true">
+        <div class="sheet__header">
+            <div class="sheet__title">Help &amp; Feedback</div>
+            <button class="sheet__close" data-action="close-help" aria-label="Close" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="sheet__scroll">
+            <!-- Card : FAQ (questionmark.bubble.fill) -->
+            <button class="opt-card" type="button" data-action="open-faq">
+                <div class="opt-card__icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M20 2H8C6.34 2 5 3.34 5 5v10c0 1.66 1.34 3 3 3h1v3.2c0 .5.55.79.96.51L13.94 18H20c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3zm-6 12.3c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm1.4-3.4c-.55.3-.68.55-.68 1.05 0 .35-.31.65-.72.65-.42 0-.72-.3-.72-.72 0-.83.36-1.4 1.05-1.85.55-.35.86-.55.86-1.15 0-.66-.5-1.12-1.24-1.12-.55 0-.94.23-1.24.69-.18.28-.4.4-.68.4-.4 0-.7-.3-.7-.72 0-.14.03-.28.09-.4.4-.86 1.36-1.4 2.55-1.4 1.55 0 2.72.92 2.72 2.28 0 1-.5 1.63-1.3 2.29z"/>
+                    </svg>
+                </div>
+                <div class="opt-card__text">
+                    <div class="opt-card__title">FAQ</div>
+                    <div class="opt-card__sub">Answers to the most frequent questions.</div>
+                </div>
+                <svg class="opt-card__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+
+            <!-- Card : Bug fix & improvement (bubble.left.and.bubble.right.fill) -->
+            <button class="opt-card" type="button" data-action="open-chat">
+                <div class="opt-card__icon">
+                    <svg viewBox="0 0 31.6873 25.8243" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M22.7068 4.85535L16.4843 4.85535C12.8325 4.85535 10.5861 7.11734 10.5861 10.6849L10.5861 16.409C10.5861 17.5365 10.8195 18.5294 11.259 19.3557L8.63089 21.6698C8.02943 22.1967 7.66324 22.432 7.16564 22.432C6.46697 22.432 6.0515 21.9442 6.0515 21.1674L6.0515 18.5006L5.70076 18.5006C2.92769 18.5006 1.13494 16.7592 1.13494 13.8327L1.13494 6.18099C1.13494 3.25445 2.85316 1.50959 5.80945 1.50959L18.1733 1.50959C20.6527 1.50959 22.2562 2.734 22.7068 4.85535Z"/>
+                        <path d="M16.4843 20.6305L19.7504 20.6305L23.1736 23.5725C23.7818 24.0896 24.1413 24.3347 24.6322 24.3347C25.3309 24.3347 25.7428 23.8468 25.7428 23.0767L25.7428 20.6305L25.904 20.6305C28.645 20.6305 30.188 19.0826 30.188 16.409L30.188 10.6849C30.188 7.93937 28.5985 6.34496 25.7891 6.34496L16.4843 6.34496C13.6718 6.34496 12.0823 7.93937 12.0823 10.6849L12.0823 16.409C12.0823 19.0893 13.6718 20.6305 16.4843 20.6305Z"/>
+                    </svg>
+                </div>
+                <div class="opt-card__text">
+                    <div class="opt-card__title">Bug fix &amp; improvement</div>
+                    <div class="opt-card__sub">Report a bug or suggest an idea — we'll get back.</div>
+                </div>
+                <svg class="opt-card__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+
+            <!-- Card : Rate Poof (star.fill) -->
+            <button class="opt-card" type="button" data-action="rate">
+                <div class="opt-card__icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M12 2.6l2.8 5.68 6.28.92-4.54 4.42 1.07 6.25L12 16.9 6.39 19.87l1.07-6.25L2.92 9.2l6.28-.92z"/>
+                    </svg>
+                </div>
+                <div class="opt-card__text">
+                    <div class="opt-card__title">Rate Poof</div>
+                    <div class="opt-card__sub">Enjoying Poof? Leave a rating on the App Store.</div>
+                </div>
+                <svg class="opt-card__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+
+            <!-- Card : What's new (sparkles) -->
+            <button class="opt-card" type="button" data-action="open-whatsnew">
+                <div class="opt-card__icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M12 2.2l1.55 4.65 4.65 1.55-4.65 1.55L12 14.6l-1.55-4.65L5.8 8.4l4.65-1.55L12 2.2zM5.9 14.6l.85 2.55 2.55.85-2.55.85L5.9 21.4l-.85-2.55L2.5 18l2.55-.85L5.9 14.6zM18.2 13.4l.7 2.1 2.1.7-2.1.7-.7 2.1-.7-2.1-2.1-.7 2.1-.7.7-2.1z"/>
+                    </svg>
+                </div>
+                <div class="opt-card__text">
+                    <div class="opt-card__title">What's new</div>
+                    <div class="opt-card__sub">See the latest features and fixes.</div>
+                </div>
+                <svg class="opt-card__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+
+            <!-- Legal pills : Terms + Privacy -->
+            <div class="sheet__legal">
+                <a class="sheet__pill" href="https://poof.app/terms" target="_blank" rel="noopener">Terms</a>
+                <a class="sheet__pill" href="https://poof.app/privacy" target="_blank" rel="noopener">Privacy</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         SHEET : FAQ (iOS PoofFAQView pixel-perfect)
+         7 rows question → tap → answer révélée avec chevron rotation
+         ============================================================ -->
+    <div class="sheet sheet--faq" id="sheet-faq" aria-hidden="true">
+        <div class="sheet__header">
+            <div class="sheet__title">FAQ</div>
+            <button class="sheet__close" data-action="close-faq" aria-label="Close" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="sheet__scroll sheet__scroll--faq">
+            <div class="faq-row" data-action="toggle-faq">
+                <div class="faq-row__head">
+                    <div class="faq-row__q">How do I send a file?</div>
+                    <svg class="faq-row__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="faq-row__a">Open the Send tab, pick a type (photo, doc, clipboard), select a recipient, then swipe the central circle upward.</div>
+            </div>
+            <div class="faq-row" data-action="toggle-faq">
+                <div class="faq-row__head">
+                    <div class="faq-row__q">Are my files encrypted?</div>
+                    <svg class="faq-row__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="faq-row__a">Yes. All transfers go peer-to-peer via WebRTC. Secure (Premium) adds an extra AES-256 layer on the file itself.</div>
+            </div>
+            <div class="faq-row" data-action="toggle-faq">
+                <div class="faq-row__head">
+                    <div class="faq-row__q">Why isn't my file sending?</div>
+                    <svg class="faq-row__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="faq-row__a">Check that your recipient is online (green dot) and Poof is open on both sides. On Free, Poof stays limited to your local Wi-Fi.</div>
+            </div>
+            <div class="faq-row" data-action="toggle-faq">
+                <div class="faq-row__head">
+                    <div class="faq-row__q">How do I pair a new device?</div>
+                    <svg class="faq-row__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="faq-row__a">Send tab → tap an empty slot → Add device sheet → scan the QR or enter the code shown on the other device.</div>
+            </div>
+            <div class="faq-row" data-action="toggle-faq">
+                <div class="faq-row__head">
+                    <div class="faq-row__q">How does Premium work?</div>
+                    <svg class="faq-row__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="faq-row__a">Premium unlocks Secure, Track, Boost, Offline and Studio. 7-day free trial, cancellable from iCloud Settings.</div>
+            </div>
+            <div class="faq-row" data-action="toggle-faq">
+                <div class="faq-row__head">
+                    <div class="faq-row__q">Can I recover an expired file?</div>
+                    <svg class="faq-row__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="faq-row__a">No. Secure files with expiry are removed locally + from the Photos gallery if saved. That's the « auto-destruct » promise.</div>
+            </div>
+            <div class="faq-row" data-action="toggle-faq">
+                <div class="faq-row__head">
+                    <div class="faq-row__q">Where do I see my send history?</div>
+                    <svg class="faq-row__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                </div>
+                <div class="faq-row__a">Onglet Received → tap sur « All history » pour voir Sent / Received / Clipboard, avec la date et le destinataire.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         SHEET : Bug fix & improvement — Support Chat (iOS PoofSupportChat)
+         Header avec avatar + title + sub, empty state, input bar bottom
+         ============================================================ -->
+    <div class="sheet sheet--chat" id="sheet-chat" aria-hidden="true">
+        <div class="sheet__chat-header">
+            <div class="sheet__chat-avatar">
+                <svg viewBox="0 0 31.6873 25.8243" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M22.7068 4.85535L16.4843 4.85535C12.8325 4.85535 10.5861 7.11734 10.5861 10.6849L10.5861 16.409C10.5861 17.5365 10.8195 18.5294 11.259 19.3557L8.63089 21.6698C8.02943 22.1967 7.66324 22.432 7.16564 22.432C6.46697 22.432 6.0515 21.9442 6.0515 21.1674L6.0515 18.5006L5.70076 18.5006C2.92769 18.5006 1.13494 16.7592 1.13494 13.8327L1.13494 6.18099C1.13494 3.25445 2.85316 1.50959 5.80945 1.50959L18.1733 1.50959C20.6527 1.50959 22.2562 2.734 22.7068 4.85535Z"/>
+                    <path d="M16.4843 20.6305L19.7504 20.6305L23.1736 23.5725C23.7818 24.0896 24.1413 24.3347 24.6322 24.3347C25.3309 24.3347 25.7428 23.8468 25.7428 23.0767L25.7428 20.6305L25.904 20.6305C28.645 20.6305 30.188 19.0826 30.188 16.409L30.188 10.6849C30.188 7.93937 28.5985 6.34496 25.7891 6.34496L16.4843 6.34496C13.6718 6.34496 12.0823 7.93937 12.0823 10.6849L12.0823 16.409C12.0823 19.0893 13.6718 20.6305 16.4843 20.6305Z"/>
+                </svg>
+            </div>
+            <div class="sheet__chat-titlewrap">
+                <div class="sheet__chat-title">Poof Support</div>
+                <div class="sheet__chat-sub">We'll get back to you as soon as possible.</div>
+            </div>
+            <button class="sheet__close" data-action="close-chat" aria-label="Close" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="sheet__chat-body" id="chat-body">
+            <div class="sheet__chat-empty">
+                <svg class="sheet__chat-empty-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M20 2H6C4.34 2 3 3.34 3 5v10c0 1.66 1.34 3 3 3h2v3.5c0 .55.66.83 1.06.44L13.4 18H20c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3z" fill-opacity="0.55"/>
+                </svg>
+                <div class="sheet__chat-empty-title">No message yet</div>
+                <div class="sheet__chat-empty-sub">Write to us: idea, bug, question — we read everything.</div>
+            </div>
+        </div>
+
+        <div class="sheet__chat-input">
+            <div class="sheet__chat-field" contenteditable="true" role="textbox" aria-label="Write a message" data-placeholder="Write a message…"></div>
+            <button class="sheet__chat-send" data-action="send-chat" aria-label="Send" type="button" disabled>
+                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         SHEET : Add a device (iOS PoofAddDeviceSheet pixel-perfect)
+         Nearby (empty state web) + Add remotely (3 méthodes iOS)
+         ============================================================ -->
+    <div class="sheet sheet--pair" id="sheet-add-device" aria-hidden="true">
+        <div class="sheet__header">
+            <div class="sheet__title">Add a device</div>
+            <button class="sheet__my-code" data-action="open-my-code" type="button">My code</button>
+            <button class="sheet__close" data-action="close-add-device" aria-label="Close" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="sheet__scroll sheet__scroll--pair">
+            <!-- Section Nearby : empty state web (MC/Bluetooth non dispo en navigateur) -->
+            <div class="pair-section">
+                <div class="pair-section__header">Nearby</div>
+                <div class="pair-nearby-empty">
+                    <div class="pair-nearby-empty__spinner"></div>
+                    <div class="pair-nearby-empty__text">
+                        <div class="pair-nearby-empty__title">Searching for devices…</div>
+                        <div class="pair-nearby-empty__sub">Make sure Poof is open on both sides.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section Add remotely : 3 méthodes -->
+            <div class="pair-section">
+                <div class="pair-section__header">Add remotely</div>
+                <button class="pair-method" type="button" data-action="open-qr-scan">
+                    <div class="pair-method__icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6-6.5v3h-3v-3h3M19 5h-6v6h6V5zm-6 8h1.5v1.5H13V13zm1.5 1.5H16V16h-1.5v-1.5zM16 13h1.5v1.5H16V13zm-3 3h1.5v1.5H13V16zm1.5 1.5H16V19h-1.5v-1.5zM16 16h1.5v1.5H16V16zm1.5-1.5H19V16h-1.5v-1.5zm0 3H19V19h-1.5v-1.5z"/>
+                        </svg>
+                    </div>
+                    <div class="pair-method__text">
+                        <div class="pair-method__title">Scan a QR code</div>
+                        <div class="pair-method__sub">From another iPhone, iPad or computer</div>
+                    </div>
+                    <svg class="pair-method__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+                </button>
+
+                <button class="pair-method" type="button" data-action="open-invite">
+                    <div class="pair-method__icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        </svg>
+                    </div>
+                    <div class="pair-method__text">
+                        <div class="pair-method__title">Send an invitation</div>
+                        <div class="pair-method__sub">Via iMessage, SMS or email</div>
+                    </div>
+                    <svg class="pair-method__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+                </button>
+
+                <button class="pair-method" type="button" data-action="open-code-entry">
+                    <div class="pair-method__icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M20.5 10L21 8h-4l1-4h-2l-1 4h-4l1-4h-2L9 8H5l-.5 2h4l-1 4h-4L3 16h4l-1 4h2l1-4h4l-1 4h2l1-4h4l.5-2h-4l1-4h4zm-7 4h-4l1-4h4l-1 4z"/>
+                        </svg>
+                    </div>
+                    <div class="pair-method__text">
+                        <div class="pair-method__title">Enter a code</div>
+                        <div class="pair-method__sub">6 characters shared verbally</div>
+                    </div>
+                    <svg class="pair-method__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         SHEET : My pair code — affiche le code 6-char généré via pairAdvertise
+         L'autre device tape ce code dans "Enter a code" côté Mac ou PWA
+         ============================================================ -->
+    <div class="sheet sheet--mycode" id="sheet-my-code" aria-hidden="true">
+        <div class="sheet__header">
+            <div class="sheet__title">My code</div>
+            <button class="sheet__close" data-action="close-my-code" aria-label="Close" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="sheet__scroll sheet__scroll--centered">
+            <div class="pair-hero-sub">Have the other device enter this code — or scan it from Poof Mac / iPhone.</div>
+            <div class="mycode-display" id="mycode-display">
+                <div class="mycode-display__spinner"></div>
+            </div>
+            <div class="mycode-status" id="mycode-status">Generating…</div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         SHEET : Enter a code (iOS CodeEntrySheet pixel-perfect)
+         Icon number.square.fill bleu 48pt + title + subtitle + input mono + Pair btn
+         ============================================================ -->
+    <div class="sheet sheet--code" id="sheet-code-entry" aria-hidden="true">
+        <div class="sheet__header">
+            <div class="sheet__title">Code</div>
+            <button class="sheet__close" data-action="close-code-entry" aria-label="Cancel" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="sheet__scroll sheet__scroll--centered">
+            <svg class="pair-hero-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm11.5 6H14V8h-2v2h-1.5V8h-2v2H7v2h1.5v2H7v2h1.5v2h2v-2H12v2h2v-2h1.5v2h2v-2H16v-2h1.5v-2H16V8h-1.5v2zm-3.5 4v-2h1.5v2H12z"/>
+            </svg>
+            <div class="pair-hero-title">Enter the 6-character code</div>
+            <div class="pair-hero-sub">Ask the other person — it's displayed on their screen under « My QR ».</div>
+            <input class="pair-code-input" id="pair-code-input" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="6" placeholder="ABC 123">
+            <button class="pair-primary-btn" id="pair-primary-btn" type="button" disabled>Pair</button>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         SHEET : Send an invitation (iOS InviteSheet)
+         Icon paperplane 48pt + title + subtitle + Share button (Web Share API)
+         ============================================================ -->
+    <div class="sheet sheet--invite" id="sheet-invite" aria-hidden="true">
+        <div class="sheet__header">
+            <div class="sheet__title">Invitation</div>
+            <button class="sheet__close" data-action="close-invite" aria-label="Close" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="sheet__scroll sheet__scroll--centered">
+            <svg class="pair-hero-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+            <div class="pair-hero-title">Send an invitation</div>
+            <div class="pair-hero-sub">The other person clicks the link, downloads Poof or receives the file directly in their browser.</div>
+            <button class="pair-primary-btn" data-action="share-invite" type="button">
+                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="width:18px;height:18px">
+                    <path d="M16 5l-1.42 1.42L18.17 10H8v2h10.17l-3.59 3.58L16 17l6-6-6-6zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+                </svg>
+                <span>Share link</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         SHEET : What's new (iOS PoofWhatsNewView pixel-perfect)
+         Release 1.0 · September 2026 + 5 highlights avec sparkle
+         ============================================================ -->
+    <div class="sheet sheet--whatsnew" id="sheet-whatsnew" aria-hidden="true">
+        <div class="sheet__header">
+            <div class="sheet__title">What's new</div>
+            <button class="sheet__close" data-action="close-whatsnew" aria-label="Close" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6L6 18"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="sheet__scroll sheet__scroll--whatsnew">
+            <div class="release-card">
+                <div class="release-card__head">
+                    <div class="release-card__version">Version 1.0</div>
+                    <div class="release-card__sep">·</div>
+                    <div class="release-card__date">September 2026</div>
+                </div>
+                <div class="release-card__list">
+                    <div class="release-card__row">
+                        <svg class="release-card__spark" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6z"/></svg>
+                        <div class="release-card__text">Send files, photos and clipboard from iPhone to any device</div>
+                    </div>
+                    <div class="release-card__row">
+                        <svg class="release-card__spark" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6z"/></svg>
+                        <div class="release-card__text">Share Extension — share directly from Photos or Files</div>
+                    </div>
+                    <div class="release-card__row">
+                        <svg class="release-card__spark" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6z"/></svg>
+                        <div class="release-card__text">Faux Dynamic Island for a smoother send feedback</div>
+                    </div>
+                    <div class="release-card__row">
+                        <svg class="release-card__spark" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6z"/></svg>
+                        <div class="release-card__text">Lock Screen widget for one-tap clipboard send</div>
+                    </div>
+                    <div class="release-card__row">
+                        <svg class="release-card__spark" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l1.6 5.4L19 9l-5.4 1.6L12 16l-1.6-5.4L5 9l5.4-1.6z"/></svg>
+                        <div class="release-card__text">Premium — Secure, Track, Boost, Offline, Studio</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+
+<script>
+    // Tab switching : active la page correspondante et met à jour le style tab
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const tab = btn.dataset.tab;
+            document.querySelectorAll(".tab-btn").forEach((b) => {
+                const isActive = b === btn;
+                b.classList.toggle("tab-btn--active", isActive);
+                b.querySelector(".tab-icon").classList.toggle("tab-icon--active", isActive);
+                b.querySelector(".tab-label").classList.toggle("tab-label--active", isActive);
+            });
+            document.querySelectorAll(".page").forEach((p) => {
+                p.classList.toggle("page--active", p.id === `page-${tab}`);
+            });
+        });
+    });
+
+    // ============================================================
+    // Sheets : open / close routing via data-action
+    // ============================================================
+    const sheetMap = {
+        "open-help":         "sheet-help",
+        "close-help":        "sheet-help",
+        "open-faq":          "sheet-faq",
+        "close-faq":         "sheet-faq",
+        "open-chat":         "sheet-chat",
+        "close-chat":        "sheet-chat",
+        "open-whatsnew":     "sheet-whatsnew",
+        "close-whatsnew":    "sheet-whatsnew",
+        "open-add-device":   "sheet-add-device",
+        "close-add-device":  "sheet-add-device",
+        "open-code-entry":   "sheet-code-entry",
+        "close-code-entry":  "sheet-code-entry",
+        "open-invite":       "sheet-invite",
+        "close-invite":      "sheet-invite",
+        "open-my-code":      "sheet-my-code",
+        "close-my-code":     "sheet-my-code"
+    };
+    function openSheet(id) {
+        const el = document.getElementById(id);
+        el.classList.add("sheet--open");
+        el.setAttribute("aria-hidden", "false");
+    }
+    function closeSheet(id) {
+        const el = document.getElementById(id);
+        el.classList.remove("sheet--open");
+        el.setAttribute("aria-hidden", "true");
+    }
+
+    document.addEventListener("click", (e) => {
+        const target = e.target.closest("[data-action]");
+        if (!target) return;
+        const action = target.dataset.action;
+
+        if (action.startsWith("open-") && sheetMap[action]) openSheet(sheetMap[action]);
+        if (action.startsWith("close-") && sheetMap[action]) closeSheet(sheetMap[action]);
+
+        // Rate Poof → App Store link (placeholder — remplacer par vraie URL quand dispo)
+        if (action === "rate") {
+            window.open("https://apps.apple.com/search?term=poof", "_blank", "noopener");
+        }
+
+        // FAQ row toggle : expand / collapse answer + rotate chevron
+        if (action === "toggle-faq") {
+            target.classList.toggle("faq-row--open");
+        }
+
+        // Clear selection : X du preview panel → reset complet + revient à cloud
+        if (action === "clear-selection") {
+            selectedFiles = [];
+            clipboardPayload = null;
+            setCenterIcon("cloud");
+            updateCount();
+        }
+
+        // Retry Paste manuel depuis l'empty state clipboard (permission user gesture)
+        if (action === "paste-clipboard") {
+            handleClipboard();
+        }
+
+        // Share invite : Web Share API (iOS Safari + Android Chrome native), fallback copy
+        if (action === "share-invite") {
+            const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+            const url = `https://poof.app/pair/${code}`;
+            if (navigator.share) {
+                navigator.share({
+                    title: "Join me on Poof",
+                    text: `Open this link to receive my Poof transfer: ${url}`,
+                    url
+                }).catch(() => {});
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(url);
+                haptic(20);
+            }
+        }
+
+        // Placeholder QR scan : ouvre camera dans une version future
+        if (action === "open-qr-scan") {
+            alert("QR scanner: camera access will be added in Phase 3.");
+        }
+
+        // My code : demande un pair code au serveur via pairAdvertise
+        if (action === "open-my-code") {
+            requestPairCode();
+        }
+        if (action === "close-my-code") {
+            cancelPairAdvertise();
+        }
+    });
+
+    // ============================================================
+    // PHASE 3b — Pairing réel (advertise + consume + peer store)
+    // ============================================================
+    const mycodeDisplay = document.getElementById("mycode-display");
+    const mycodeStatus = document.getElementById("mycode-status");
+
+    function requestPairCode() {
+        if (!window.Poof || !Poof.signaling) {
+            mycodeStatus.textContent = "Signaling not connected — retrying…";
+            mycodeDisplay.innerHTML = `<div class="mycode-display__spinner"></div>`;
+            setTimeout(requestPairCode, 500);
+            return;
+        }
+        mycodeStatus.textContent = "Generating…";
+        mycodeDisplay.innerHTML = `<div class="mycode-display__spinner"></div>`;
+        Poof.signaling.pairAdvertise()
+            .then((code) => {
+                mycodeDisplay.innerHTML = `<div class="mycode-display__code">${escapeHTML(code)}</div>`;
+                mycodeStatus.textContent = "Waiting for the other device…";
+            })
+            .catch((err) => {
+                console.error("[Poof] pairAdvertise failed:", err);
+                mycodeStatus.textContent = "Failed — check your connection.";
+            });
+    }
+
+    function cancelPairAdvertise() {
+        if (window.Poof?.signaling) Poof.signaling.pairCancel();
+    }
+
+    // Code entry : input auto-uppercase / alphanumeric-only, activate Pair btn quand 6 chars
+    const pairCodeInput = document.getElementById("pair-code-input");
+    const pairPrimaryBtn = document.getElementById("pair-primary-btn");
+    if (pairCodeInput && pairPrimaryBtn) {
+        pairCodeInput.addEventListener("input", () => {
+            const clean = pairCodeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+            if (clean !== pairCodeInput.value) pairCodeInput.value = clean;
+            pairPrimaryBtn.disabled = clean.length !== 6;
+        });
+        pairPrimaryBtn.addEventListener("click", async () => {
+            if (pairPrimaryBtn.disabled) return;
+            const code = pairCodeInput.value.trim().toUpperCase();
+            if (code.length !== 6) return;
+            if (!window.Poof?.signaling) {
+                console.warn("[Poof] Signaling not connected");
+                return;
+            }
+            pairPrimaryBtn.disabled = true;
+            pairPrimaryBtn.textContent = "Pairing…";
+            try {
+                const peer = await Poof.signaling.pairConsume(code);
+                console.log("[Poof] Paired via code:", peer);
+                Poof.peers.upsert(peer);
+                haptic([20, 40, 20]);
+                pairCodeInput.value = "";
+                pairPrimaryBtn.textContent = "Pair";
+                closeSheet("sheet-code-entry");
+                closeSheet("sheet-add-device");
+                renderDeviceSlots();
+            } catch (err) {
+                console.error("[Poof] pairConsume failed:", err);
+                pairPrimaryBtn.textContent = "Failed — retry";
+                setTimeout(() => {
+                    pairPrimaryBtn.textContent = "Pair";
+                    pairPrimaryBtn.disabled = false;
+                }, 1500);
+            }
+        });
+    }
+
+    // ============================================================
+    // Device slots — affiche les peers pairés dans les 3 cercles
+    // (miroir iOS PoofSendView.deviceSlots — les slots vides = "+")
+    // ============================================================
+    function renderDeviceSlots() {
+        if (!window.Poof) return;
+        const peers = Poof.peers.peers.slice(0, 3);
+        const slots = document.querySelectorAll(".send-slot");
+        slots.forEach((slot, i) => {
+            const circle = slot.querySelector(".send-slot__circle");
+            const label = slot.querySelector(".send-slot__label");
+            const peer = peers[i];
+            if (peer) {
+                slot.dataset.peerId = peer.id;
+                slot.dataset.action = "select-peer";
+                label.textContent = peer.name || "Device";
+                circle.innerHTML = deviceIconSVG(peer.platform);
+            } else {
+                delete slot.dataset.peerId;
+                slot.dataset.action = "open-add-device";
+                label.textContent = `Device ${i + 1}`;
+                circle.innerHTML = `
+                    <svg class="send-slot__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16.8845 16.5267" aria-hidden="true">
+                        <path d="M9.52557 15.269L9.52557 1.25732C9.52557 0.568082 8.95439 0 8.2616 0C7.56881 0 7.00739 0.568082 7.00739 1.25732L7.00739 15.269C7.00739 15.9551 7.56881 16.5232 8.2616 16.5232C8.95439 16.5232 9.52557 15.9551 9.52557 15.269ZM1.25732 9.51891L15.269 9.51891C15.9551 9.51891 16.5232 8.95439 16.5232 8.2616C16.5232 7.56881 15.9551 6.99762 15.269 6.99762L1.25732 6.99762C0.568082 6.99762 0 7.56881 0 8.2616C0 8.95439 0.568082 9.51891 1.25732 9.51891Z" fill="white" fill-opacity="0.85"/>
+                    </svg>`;
+            }
+        });
+    }
+
+    function deviceIconSVG(platform) {
+        // iPhone SVG par défaut, MacBook si platform mac, sinon iPhone
+        if (platform === "macos" || platform === "windows" || platform === "linux") {
+            return `<svg class="send-slot__icon send-slot__icon--laptop" viewBox="0 0 29.5626 16.6721" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M5.5287 13.9829L5.5287 3.07274C5.5287 2.46637 5.82567 2.18182 6.41961 2.18182L22.7817 2.18182C23.3725 2.18182 23.6695 2.46637 23.6695 3.07274L23.6695 13.9829Z" fill="white" fill-opacity="0.2125"/>
+                <path d="M11.4558 2.18182L11.7092 2.18182C11.8588 2.18182 11.9401 2.25639 11.9401 2.42241L11.9401 2.61057C11.9401 3.05178 12.2383 3.34696 12.6733 3.34696L16.5382 3.34696C16.9727 3.34696 17.2514 3.05178 17.2514 2.61057L17.2514 2.42241C17.2514 2.25639 17.3327 2.18182 17.4987 2.18182L17.7522 2.18182L17.7522 1.00173L11.4558 1.00173ZM0 15.3259C0 16.0654 0.609841 16.6721 1.33953 16.6721L27.8586 16.6721C28.5914 16.6721 29.2013 16.0654 29.2013 15.3259C29.2013 14.5865 28.5914 13.9829 27.8586 13.9829L25.8442 13.9829L25.8442 2.5246C25.8442 0.893453 24.9379 0.00710964 23.3134 0.00710964L5.8879 0.00710964C4.31003 0.00710964 3.35398 0.893453 3.35398 2.5246L3.35398 13.9829L1.33953 13.9829C0.609841 13.9829 0 14.5865 0 15.3259ZM5.5287 13.9829L5.5287 3.07274C5.5287 2.46637 5.82567 2.18182 6.41961 2.18182L22.7817 2.18182C23.3725 2.18182 23.6695 2.46637 23.6695 3.07274L23.6695 13.9829Z" fill="white" fill-opacity="0.85"/>
+            </svg>`;
+        }
+        return `<svg class="send-slot__icon" viewBox="0 0 14.1492 21.9169" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M3.34888 19.614C2.60575 19.614 2.17471 19.2087 2.17471 18.4926L2.17471 3.39231C2.17471 2.67627 2.60575 2.27098 3.34888 2.27098L10.4488 2.27098C11.1821 2.27098 11.6132 2.68249 11.6132 3.39542L11.6132 18.4895C11.6132 19.2024 11.1821 19.614 10.4488 19.614Z" fill="white" fill-opacity="0.2125"/>
+            <path d="M2.92642 21.8849L10.936 21.8849C12.6458 21.8849 13.7879 20.7575 13.7879 19.0726L13.7879 2.81234C13.7879 1.12431 12.6458 0 10.936 0L2.92642 0C1.17314 0 0 1.12431 0 2.80923L0 19.0757C0 20.7575 1.17314 21.8849 2.92642 21.8849ZM3.34888 19.614C2.60575 19.614 2.17471 19.2087 2.17471 18.4926L2.17471 3.39231C2.17471 2.67627 2.60575 2.27098 3.34888 2.27098L10.4488 2.27098C11.1821 2.27098 11.6132 2.68249 11.6132 3.39542L11.6132 18.4895C11.6132 19.2024 11.1821 19.614 10.4488 19.614ZM4.76796 18.8172L9.03325 18.8172C9.33418 18.8172 9.54768 18.6099 9.54768 18.2961C9.54768 17.9792 9.33418 17.7755 9.03325 17.7755L4.76796 17.7755C4.46702 17.7755 4.24376 17.9792 4.24376 18.2961C4.24376 18.6099 4.46702 18.8172 4.76796 18.8172Z" fill="white" fill-opacity="0.85"/>
+        </svg>`;
+    }
+
+    // Écoute pair-succeeded côté "advertiser" (celui qui affiche le code)
+    // pour ajouter le peer dès qu'il consomme le code
+    function attachPairListener() {
+        if (!window.Poof?.signaling) { setTimeout(attachPairListener, 500); return; }
+        Poof.signaling.addEventListener("pair-succeeded", (e) => {
+            const peer = e.detail.peer;
+            console.log("[Poof] pair-succeeded (advertiser):", peer);
+            Poof.peers.upsert(peer);
+            haptic([20, 40, 20]);
+            mycodeStatus.textContent = `Paired with ${peer.name || "device"} ✓`;
+            setTimeout(() => {
+                closeSheet("sheet-my-code");
+                closeSheet("sheet-add-device");
+                renderDeviceSlots();
+            }, 900);
+        });
+        Poof.peers.addEventListener("change", renderDeviceSlots);
+        renderDeviceSlots();
+    }
+    attachPairListener();
+
+    // Chat input : enable send button when content, send on click (no backend wiring
+    // pour l'instant — l'iOS pointe sur poof-fgb8.onrender.com/messages, à câbler plus tard)
+    const chatField = document.querySelector(".sheet__chat-field");
+    const chatSend = document.querySelector(".sheet__chat-send");
+    if (chatField && chatSend) {
+        const syncSendState = () => {
+            const hasText = chatField.textContent.trim().length > 0;
+            chatSend.disabled = !hasText;
+        };
+        chatField.addEventListener("input", syncSendState);
+        chatSend.addEventListener("click", () => {
+            const text = chatField.textContent.trim();
+            if (!text) return;
+            appendChatBubble(text, false);
+            chatField.textContent = "";
+            syncSendState();
+        });
+    }
+
+    function appendChatBubble(text, isAdmin) {
+        const body = document.getElementById("chat-body");
+        const empty = body.querySelector(".sheet__chat-empty");
+        if (empty) empty.remove();
+        const wrap = document.createElement("div");
+        wrap.className = `chat-bubble ${isAdmin ? "chat-bubble--admin" : "chat-bubble--me"}`;
+        const bubble = document.createElement("div");
+        bubble.className = "chat-bubble__text";
+        bubble.textContent = text;
+        wrap.appendChild(bubble);
+        body.appendChild(wrap);
+        body.scrollTop = body.scrollHeight;
+    }
+
+    // ============================================================
+    // PHASE 1 — Send flow (visuel + interactions, sans réseau)
+    // Miroir de PoofSendView.swift :
+    //   • tap chip photo/doc/clipboard → morph centerIcon (spring)
+    //   • ouvre file picker natif OU lit clipboard
+    //   • badge compteur + preview + tap/swipe-up cloud = launch
+    // ============================================================
+    const sendCloud = document.getElementById("send-cloud");
+    const cloudCount = document.getElementById("send-cloud-count");
+    const pickerPhoto = document.getElementById("picker-photo");
+    const pickerDoc = document.getElementById("picker-doc");
+    let selectedFiles = [];
+    let centerIcon = "cloud";
+
+    function haptic(duration) {
+        if (navigator.vibrate) navigator.vibrate(duration);
+    }
+
+    function setCenterIcon(icon) {
+        if (centerIcon === icon) return;
+        centerIcon = icon;
+        sendCloud.dataset.icon = icon;
+        haptic(6);
+    }
+
+    const sendPreview = document.getElementById("send-preview");
+    const sendScroller = document.getElementById("send-preview-scroller");
+    const sendClipboardBox = document.getElementById("send-preview-clipboard");
+    // Clipboard payload iOS-style : { type: 'text'|'url'|'image', text?, url?, blob?, mime? }
+    let clipboardPayload = null;
+
+    function hasContent() {
+        return selectedFiles.length > 0 || clipboardPayload !== null;
+    }
+
+    function updateCount() {
+        // Ouvre le panel dès qu'un chip est actif (clipboard OU fichiers)
+        // matching le comportement iOS : le panel apparaît même vide en mode clipboard
+        const shouldOpen =
+            selectedFiles.length > 0 ||
+            centerIcon === "clipboard";
+        if (shouldOpen) {
+            openPreviewPanel();
+            renderPreviewPanel();
+        } else {
+            closePreviewPanel();
+        }
+    }
+
+    const pageSend = document.getElementById("page-send");
+    function openPreviewPanel() {
+        sendPreview.classList.add("send-preview--open");
+        sendPreview.setAttribute("aria-hidden", "false");
+        pageSend.classList.add("page--send--panel-open");
+    }
+    function closePreviewPanel() {
+        sendPreview.classList.remove("send-preview--open");
+        sendPreview.setAttribute("aria-hidden", "true");
+        pageSend.classList.remove("page--send--panel-open");
+    }
+
+    // Router : rend soit le mode fichiers (scroll de tiles) soit le mode clipboard
+    // (empty state OU preview single content), selon centerIcon
+    function renderPreviewPanel() {
+        if (centerIcon === "clipboard") {
+            sendScroller.hidden = true;
+            sendClipboardBox.hidden = false;
+            renderClipboardContent();
+        } else {
+            sendClipboardBox.hidden = true;
+            sendScroller.hidden = false;
+            renderFileTiles();
+        }
+    }
+
+    function renderFileTiles() {
+        // Purge — Object.URL cleanup pour éviter les fuites mémoire des blobs
+        for (const url of sendScroller.querySelectorAll("img")) URL.revokeObjectURL(url.src);
+        sendScroller.innerHTML = "";
+
+        selectedFiles.forEach((entry, idx) => {
+            const tile = document.createElement("div");
+            tile.className = "send-tile";
+
+            if (entry.kind === "photo" && entry.file && entry.file.type.startsWith("image/")) {
+                const img = document.createElement("img");
+                img.src = URL.createObjectURL(entry.file);
+                img.alt = entry.file.name;
+                tile.appendChild(img);
+            } else if (entry.kind === "photo" && entry.file && entry.file.type.startsWith("video/")) {
+                tile.classList.add("send-tile--video");
+                tile.innerHTML = `<div class="send-tile__glyph">▶</div><div class="send-tile__name">${escapeHTML(entry.file.name)}</div>`;
+            } else if (entry.kind === "doc") {
+                tile.classList.add("send-tile--doc");
+                const sizeStr = entry.file ? formatBytes(entry.file.size) : "";
+                tile.innerHTML = `
+                    <svg viewBox="0 0 17.3523 21.2951" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M3.28199 21.2915L13.709 21.2915C15.8578 21.2915 16.991 20.1419 16.991 17.9864L16.991 9.33974L9.51384 9.33974C8.31353 9.33974 7.72093 8.74714 7.72093 7.54372L7.72093 0L3.28199 0C1.14295 0 0 1.15627 0 3.31173L0 17.9864C0 20.1486 1.13629 21.2915 3.28199 21.2915Z"/>
+                    </svg>
+                    <div class="send-tile__name">${escapeHTML(entry.file ? entry.file.name : "file")}</div>
+                    <div class="send-tile__meta">${sizeStr}</div>`;
+            }
+
+            const del = document.createElement("button");
+            del.className = "send-tile__del";
+            del.type = "button";
+            del.setAttribute("aria-label", "Remove");
+            del.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
+            del.addEventListener("click", (e) => {
+                e.stopPropagation();
+                selectedFiles.splice(idx, 1);
+                updateCount();
+            });
+            tile.appendChild(del);
+            sendScroller.appendChild(tile);
+        });
+
+        // Bouton "+" à la fin pour ajouter plus
+        const addBtn = document.createElement("button");
+        addBtn.className = "send-tile send-tile--add";
+        addBtn.type = "button";
+        addBtn.setAttribute("aria-label", "Add more");
+        addBtn.innerHTML = `<svg viewBox="0 0 16.8845 16.5267" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M9.52557 15.269L9.52557 1.25732C9.52557 0.568082 8.95439 0 8.2616 0C7.56881 0 7.00739 0.568082 7.00739 1.25732L7.00739 15.269C7.00739 15.9551 7.56881 16.5232 8.2616 16.5232C8.95439 16.5232 9.52557 15.9551 9.52557 15.269ZM1.25732 9.51891L15.269 9.51891C15.9551 9.51891 16.5232 8.95439 16.5232 8.2616C16.5232 7.56881 15.9551 6.99762 15.269 6.99762L1.25732 6.99762C0.568082 6.99762 0 7.56881 0 8.2616C0 8.95439 0.568082 9.51891 1.25732 9.51891Z"/></svg>`;
+        addBtn.addEventListener("click", () => {
+            if (centerIcon === "photo") { pickerPhoto.value = ""; pickerPhoto.click(); }
+            else if (centerIcon === "doc") { pickerDoc.value = ""; pickerDoc.click(); }
+        });
+        sendScroller.appendChild(addBtn);
+    }
+
+    // Clipboard content — miroir iOS clipboardPanel (empty state OU preview payload)
+    function renderClipboardContent() {
+        // Cleanup precedent
+        for (const url of sendClipboardBox.querySelectorAll("img")) URL.revokeObjectURL(url.src);
+        sendClipboardBox.innerHTML = "";
+
+        if (!clipboardPayload) {
+            // Empty state iOS : doc.on.clipboard.fill 40pt + "Nothing to send yet" + Paste button
+            sendClipboardBox.innerHTML = `
+                <svg class="clip-empty__glyph" viewBox="0 0 23.9199 28.0171" fill="white" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M22.069 4.78446L22.069 18.1036C22.069 20.256 20.9327 21.4122 18.787 21.4122L18.6612 21.4122L18.6612 15.7338C18.6612 14.1732 18.3701 13.0512 17.2 11.8611L12.1125 6.70388C10.8252 5.39353 9.87313 5.09529 8.25751 5.09529L6.39363 5.09529L6.39363 4.78446C6.39363 2.62234 7.52991 1.47584 9.67561 1.47584L18.787 1.47584C20.9327 1.47584 22.069 2.62234 22.069 4.78446ZM11.9727 3.55187C11.5057 3.55187 11.2856 3.90605 11.2856 4.20568L11.2856 4.42939C11.2856 4.76583 11.5337 5.08319 11.9727 5.08319L16.493 5.08319C16.9222 5.08319 17.1801 4.76583 17.1801 4.42939L17.1801 4.20568C17.1801 3.90605 16.9533 3.55187 16.493 3.55187Z"/>
+                    <path d="M1.48961 23.2158C1.48961 25.3779 2.63255 26.5244 4.77159 26.5244L13.883 26.5244C16.0287 26.5244 17.1649 25.3681 17.1649 23.2158L17.1649 15.7369L10.125 15.7369C8.88071 15.7369 8.25751 15.1071 8.25751 13.8695L8.25751 6.588L4.77159 6.588C2.63255 6.588 1.48961 7.7345 1.48961 9.89663Z"/>
+                </svg>
+                <div class="clip-empty__text">Nothing to send yet</div>
+                <button class="clip-empty__paste" type="button" data-action="paste-clipboard">
+                    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1z"/>
+                    </svg>
+                    <span>Paste</span>
+                </button>`;
+        } else if (clipboardPayload.type === "text") {
+            const wrap = document.createElement("div");
+            wrap.className = "clip-preview clip-preview--text";
+            wrap.textContent = clipboardPayload.text;
+            sendClipboardBox.appendChild(wrap);
+        } else if (clipboardPayload.type === "url") {
+            const wrap = document.createElement("div");
+            wrap.className = "clip-preview clip-preview--url";
+            wrap.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M17 7h-4v2h4c1.65 0 3 1.35 3 3s-1.35 3-3 3h-4v2h4c2.76 0 5-2.24 5-5s-2.24-5-5-5zm-6 8H7c-1.65 0-3-1.35-3-3s1.35-3 3-3h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-2zm-3-4h8v2H8z"/>
+                </svg>
+                <div class="clip-preview__url">${escapeHTML(clipboardPayload.url)}</div>`;
+            sendClipboardBox.appendChild(wrap);
+        } else if (clipboardPayload.type === "image") {
+            const wrap = document.createElement("div");
+            wrap.className = "clip-preview clip-preview--image";
+            const img = document.createElement("img");
+            img.src = URL.createObjectURL(clipboardPayload.blob);
+            img.alt = "Clipboard image";
+            wrap.appendChild(img);
+            sendClipboardBox.appendChild(wrap);
+        }
+    }
+
+    function formatBytes(bytes) {
+        if (!bytes) return "";
+        const units = ["B", "KB", "MB", "GB"];
+        let v = bytes; let u = 0;
+        while (v >= 1024 && u < units.length - 1) { v /= 1024; u++; }
+        return `${v.toFixed(v >= 10 || u === 0 ? 0 : 1)} ${units[u]}`;
+    }
+
+    function escapeHTML(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+    }
+
+    // Chip tap → morph icon + open picker
+    document.querySelectorAll("[data-chip]").forEach((el) => {
+        el.addEventListener("click", () => {
+            const chip = el.dataset.chip;
+            if (chip === "photo") {
+                setCenterIcon("photo");
+                pickerPhoto.value = ""; // permet de re-sélectionner le même fichier
+                pickerPhoto.click();
+            } else if (chip === "doc") {
+                setCenterIcon("doc");
+                pickerDoc.value = "";
+                pickerDoc.click();
+            } else if (chip === "clipboard") {
+                setCenterIcon("clipboard");
+                handleClipboard();
+            }
+        });
+    });
+
+    pickerPhoto.addEventListener("change", (e) => {
+        for (const f of e.target.files) selectedFiles.push({ file: f, kind: "photo" });
+        updateCount();
+    });
+    pickerDoc.addEventListener("change", (e) => {
+        for (const f of e.target.files) selectedFiles.push({ file: f, kind: "doc" });
+        updateCount();
+    });
+
+    // Auto-fetch pasteboard iOS-style — priorité image → URL → texte.
+    // Utilise clipboard.read() (rich content) puis fallback readText.
+    async function handleClipboard() {
+        clipboardPayload = null;
+        let found = null;
+
+        if (navigator.clipboard && navigator.clipboard.read) {
+            try {
+                const items = await navigator.clipboard.read();
+                for (const item of items) {
+                    const imgType = item.types.find((t) => t.startsWith("image/"));
+                    if (imgType) {
+                        const blob = await item.getType(imgType);
+                        found = { type: "image", blob, mime: imgType };
+                        break;
+                    }
+                    if (item.types.includes("text/plain")) {
+                        const blob = await item.getType("text/plain");
+                        const text = (await blob.text()).trim();
+                        if (text) {
+                            found = detectTextKind(text);
+                            break;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("clipboard.read failed", err);
+            }
+        }
+        if (!found) {
+            try {
+                const text = (await navigator.clipboard.readText()).trim();
+                if (text) found = detectTextKind(text);
+            } catch (err) {
+                // Permission refusée — l'empty state affichera un bouton Paste manuel
+            }
+        }
+        clipboardPayload = found;
+        updateCount();
+    }
+
+    function detectTextKind(text) {
+        try {
+            const u = new URL(text);
+            if (u.protocol === "http:" || u.protocol === "https:") {
+                return { type: "url", url: text };
+            }
+        } catch (_) {}
+        return { type: "text", text };
+    }
+
+    // ============================================================
+    // Swipe-up cloud + tap-to-send — physique iOS clean
+    //   • dead-zone 6px (pas de jitter accidentel)
+    //   • rubber-band asymétrique (up = résistant mais lisible,
+    //     down = très résistant car swipe descendant n'a pas d'action)
+    //   • vélocité calculée sur les 80 dernières ms (fiable au release)
+    //   • scale up limité, cap à 100px de translation visuelle
+    //   • cancel drag si click après swipe > 6px
+    //   • spring-back CSS via cubic-bezier iOS
+    // ============================================================
+    const DEAD_ZONE = 6;
+    const LAUNCH_THRESHOLD = 85;
+    const LAUNCH_VELOCITY = 1.1; // px/ms upward
+    const MAX_UP_TRANSLATE = 110;
+
+    let cloudStartY = 0;
+    let cloudDeltaY = 0;
+    let cloudDragging = false;
+    let cloudEngaged = false; // devient true après dead-zone
+    let cloudVelSamples = []; // [{ y, t }, ...]
+
+    const rubberUp = (raw) => {
+        // raw négatif (vers le haut). Résistance progressive au-delà de 60px.
+        const abs = Math.abs(raw);
+        if (abs <= 60) return raw;
+        const extra = abs - 60;
+        const damped = extra / (1 + extra / 180);
+        return -(60 + damped);
+    };
+    const rubberDown = () => 0; // swipe vers le bas totalement bloqué
+
+    const computeVelocity = () => {
+        // Moyenne sur les 80 dernières ms pour éviter les pics
+        const now = performance.now();
+        const recent = cloudVelSamples.filter((s) => now - s.t < 80);
+        if (recent.length < 2) return 0;
+        const first = recent[0];
+        const last = recent[recent.length - 1];
+        const dt = last.t - first.t;
+        return dt > 0 ? (last.y - first.y) / dt : 0;
+    };
+
+    const applyTransform = () => {
+        const raw = cloudDeltaY;
+        const damped = raw < 0 ? rubberUp(raw) : rubberDown(raw);
+        // Cap la valeur haute pour rester dans le cadre visuel
+        const y = Math.max(-MAX_UP_TRANSLATE, damped);
+        // Scale up très léger sur montée, borné à +5%
+        const scale = raw < 0 ? 1 + Math.min(0.05, Math.abs(y) / 1200) : 1;
+        sendCloud.style.transform = `translateY(${y}px) scale(${scale})`;
+    };
+
+    const onCloudStart = (y) => {
+        cloudDragging = true;
+        cloudEngaged = false;
+        cloudStartY = y;
+        cloudDeltaY = 0;
+        cloudVelSamples = [{ y: 0, t: performance.now() }];
+    };
+    const onCloudMove = (y) => {
+        if (!cloudDragging) return;
+        const raw = y - cloudStartY;
+        // Ignore les micro-mouvements jusqu'à passer la dead-zone
+        if (!cloudEngaged) {
+            if (Math.abs(raw) < DEAD_ZONE) return;
+            cloudEngaged = true;
+            sendCloud.style.transition = "none";
+        }
+        cloudDeltaY = raw;
+        cloudVelSamples.push({ y: raw, t: performance.now() });
+        if (cloudVelSamples.length > 8) cloudVelSamples.shift();
+        applyTransform();
+    };
+    const onCloudEnd = () => {
+        if (!cloudDragging) return;
+        const wasEngaged = cloudEngaged;
+        cloudDragging = false;
+        cloudEngaged = false;
+        if (!wasEngaged) return; // simple tap → géré par click handler
+
+        sendCloud.style.transition = ""; // réactive spring CSS iOS
+        const velocity = computeVelocity();
+        const isSwipeUp = cloudDeltaY < -LAUNCH_THRESHOLD || velocity < -LAUNCH_VELOCITY;
+        if (isSwipeUp && hasContent()) {
+            triggerLaunch();
+        } else {
+            sendCloud.style.transform = "";
+        }
+    };
+
+    sendCloud.addEventListener("touchstart", (e) => onCloudStart(e.touches[0].clientY), { passive: true });
+    sendCloud.addEventListener("touchmove", (e) => {
+        onCloudMove(e.touches[0].clientY);
+        if (cloudEngaged) e.preventDefault();
+    }, { passive: false });
+    sendCloud.addEventListener("touchend", onCloudEnd, { passive: true });
+    sendCloud.addEventListener("touchcancel", onCloudEnd, { passive: true });
+
+    // Mouse (desktop debug)
+    sendCloud.addEventListener("mousedown", (e) => {
+        onCloudStart(e.clientY);
+        const move = (ev) => onCloudMove(ev.clientY);
+        const up = () => {
+            onCloudEnd();
+            window.removeEventListener("mousemove", move);
+            window.removeEventListener("mouseup", up);
+        };
+        window.addEventListener("mousemove", move);
+        window.addEventListener("mouseup", up);
+    });
+
+    // Tap normal (pas de drag engagé) = launch si fichiers présents
+    sendCloud.addEventListener("click", (e) => {
+        // Si un drag a bougé le cloud significativement, ignorer le click auto-généré
+        if (Math.abs(cloudDeltaY) > DEAD_ZONE) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+        if (hasContent()) triggerLaunch();
+    });
+
+    // ============================================================
+    // PHASE 2 — Chunking + progress local (aucun réseau, prêt pour Phase 3)
+    //
+    // • chunkifyFile() : découpe en chunks 256 KB + génère meta packet
+    //   (fileId + name + size + mime + total chunks) réutilisable direct par
+    //   le vrai upload Phase 3 (relay HTTPS Render / WebRTC)
+    // • sendJobs : { id, kind, meta, entry?, clip?, state, progress }
+    //   états iOS PhotoSendState : pending → sending → sent | failed
+    // • Simulation : setInterval qui incrémente progress, met à jour l'UI
+    //   des tiles + header count. Haptic par étape.
+    // ============================================================
+    const CHUNK_SIZE = 256 * 1024; // 256 KB (matching iOS PoofFileTransfer)
+    let sendJobs = [];
+    let isSending = false;
+    const activeTimers = new Set();
+
+    const uuid = () =>
+        (crypto.randomUUID && crypto.randomUUID()) ||
+        `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+    function chunkifyFile(file) {
+        return {
+            fileId: uuid(),
+            name: file.name,
+            size: file.size,
+            mime: file.type || "application/octet-stream",
+            chunkSize: CHUNK_SIZE,
+            totalChunks: Math.max(1, Math.ceil(file.size / CHUNK_SIZE))
+        };
+    }
+
+    function chunkifyText(text) {
+        const bytes = new TextEncoder().encode(text).byteLength;
+        return {
+            fileId: uuid(),
+            name: "clipboard.txt",
+            size: bytes,
+            mime: "text/plain",
+            chunkSize: CHUNK_SIZE,
+            totalChunks: 1
+        };
+    }
+
+    async function chunkifyBlob(blob, name = "clipboard.png") {
+        return {
+            fileId: uuid(),
+            name,
+            size: blob.size,
+            mime: blob.type || "image/png",
+            chunkSize: CHUNK_SIZE,
+            totalChunks: Math.max(1, Math.ceil(blob.size / CHUNK_SIZE))
+        };
+    }
+
+    const sendPreviewHeader = document.getElementById("send-preview-header");
+    const sendProgressText = document.getElementById("send-preview-progress-text");
+    const sendFailedBadge = document.getElementById("send-preview-failed");
+    const sendFailedCount = document.getElementById("send-preview-failed-count");
+
+    function updateHeaderCount() {
+        if (!isSending) {
+            sendPreviewHeader.hidden = true;
+            return;
+        }
+        sendPreviewHeader.hidden = false;
+        const done = sendJobs.filter((j) => j.state === "sent").length;
+        const total = sendJobs.length;
+        const failed = sendJobs.filter((j) => j.state === "failed").length;
+        sendProgressText.textContent = `${done}/${total} sent`;
+        if (failed > 0) {
+            sendFailedBadge.hidden = false;
+            sendFailedCount.textContent = `${failed} failed`;
+        } else {
+            sendFailedBadge.hidden = true;
+        }
+    }
+
+    async function triggerLaunch() {
+        if (isSending) return;
+        isSending = true;
+
+        // 1) Prépare les send jobs (chunking meta déjà calculé, prêt pour Phase 3)
+        const jobs = [];
+        for (const entry of selectedFiles) {
+            const meta = entry.file ? chunkifyFile(entry.file) : null;
+            jobs.push({ id: uuid(), kind: entry.kind, entry, meta, state: "pending", progress: 0 });
+        }
+        if (clipboardPayload) {
+            let meta;
+            if (clipboardPayload.type === "image") meta = await chunkifyBlob(clipboardPayload.blob);
+            else if (clipboardPayload.type === "url") meta = chunkifyText(clipboardPayload.url);
+            else meta = chunkifyText(clipboardPayload.text);
+            jobs.push({ id: uuid(), kind: "clipboard", clip: clipboardPayload, meta, state: "pending", progress: 0 });
+        }
+        sendJobs = jobs;
+
+        // 2) Play launch animation (cloud fly-up + reappear)
+        sendCloud.style.transition = "";
+        sendCloud.style.transform = "";
+        void sendCloud.offsetWidth;
+        haptic([15, 40, 25]);
+        sendCloud.classList.add("send-cloud--launching");
+
+        // 3) Après l'anim, cloud passe en "sending" (halo pulse) + tiles montrent progress
+        setTimeout(() => {
+            sendCloud.classList.remove("send-cloud--launching");
+            sendCloud.classList.add("send-cloud--sending");
+            renderPreviewPanel();
+            attachProgressOverlays();
+            updateHeaderCount();
+            // Lance les uploads simulés en cascade (staggered)
+            sendJobs.forEach((job, i) => {
+                setTimeout(() => runJobSimulation(job), i * 120);
+            });
+        }, 920);
+    }
+
+    /// PHASE 3c — vrai upload via relay HTTPS Render.
+    /// Utilise XMLHttpRequest pour avoir la progression (fetch n'a pas de
+    /// upload.onprogress). Retry 3× avec backoff 1s/3s/8s. Target = premier
+    /// peer pairé disponible.
+    async function runJobSimulation(job) {
+        job.state = "sending";
+        updateJobVisual(job);
+
+        // Pas de peer pairé = impossible d'envoyer
+        const peer = window.Poof?.peers?.peers?.[0];
+        if (!peer) {
+            console.warn("[Poof] Aucun device pairé — impossible d'envoyer");
+            job.state = "failed";
+            updateJobVisual(job);
+            updateHeaderCount();
+            checkAllJobsDone();
+            return;
+        }
+
+        try {
+            if (job.kind === "clipboard" && job.clip.type !== "image") {
+                const text = job.clip.type === "url" ? job.clip.url : job.clip.text;
+                await uploadClipboardText(text, peer.id);
+                job.progress = 1;
+            } else if (job.kind === "clipboard" && job.clip.type === "image") {
+                await uploadBlobToRelay(job.clip.blob, "clipboard.png", job.clip.mime, peer.id, (p) => {
+                    job.progress = p;
+                    updateJobVisual(job);
+                });
+            } else {
+                const file = job.entry.file;
+                await uploadBlobToRelay(file, file.name, file.type || "application/octet-stream", peer.id, (p) => {
+                    job.progress = p;
+                    updateJobVisual(job);
+                });
+            }
+            job.progress = 1;
+            job.state = "sent";
+            haptic(8);
+        } catch (err) {
+            console.error("[Poof] upload failed:", err);
+            job.state = "failed";
+        }
+        updateJobVisual(job);
+        updateHeaderCount();
+        checkAllJobsDone();
+    }
+
+    async function uploadWithRetry(fn) {
+        const backoffs = [1000, 3000, 8000];
+        let lastErr;
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try { return await fn(); }
+            catch (err) {
+                lastErr = err;
+                // 4xx = pas retryable (miroir iOS PoofRelayClient)
+                if (err.message?.startsWith("HTTP 4")) throw err;
+                if (attempt < 2) await new Promise((r) => setTimeout(r, backoffs[attempt]));
+            }
+        }
+        throw lastErr;
+    }
+
+    function uploadBlobToRelay(blob, name, mime, targetDeviceId, onProgress) {
+        return uploadWithRetry(() => new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            const transferId = (crypto.randomUUID && crypto.randomUUID()) ||
+                `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+            xhr.open("POST", `${Poof.SERVER}/relay/upload`);
+            xhr.setRequestHeader("Content-Type", mime);
+            xhr.setRequestHeader("X-File-Name", name);
+            xhr.setRequestHeader("X-Mime-Type", mime);
+            xhr.setRequestHeader("X-Target-Device-Id", targetDeviceId);
+            xhr.setRequestHeader("X-Sender-Device-Id", Poof.identity.deviceId);
+            xhr.setRequestHeader("X-Transfer-Id", transferId);
+            xhr.setRequestHeader("X-Compressed", "false");
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) onProgress(e.loaded / e.total);
+            };
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    try {
+                        const data = JSON.parse(xhr.responseText || "{}");
+                        console.log("[Poof] upload ok:", name, "→", data.fileId);
+                        resolve(data.fileId);
+                    } catch (e) { reject(new Error("bad response")); }
+                } else {
+                    reject(new Error(`HTTP ${xhr.status}`));
+                }
+            };
+            xhr.onerror = () => reject(new Error("network error"));
+            xhr.ontimeout = () => reject(new Error("timeout"));
+            xhr.timeout = 60000;
+            xhr.send(blob);
+        }));
+    }
+
+    async function uploadClipboardText(text, targetDeviceId) {
+        const res = await fetch(`${Poof.SERVER}/relay/clipboard`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                targetDeviceId,
+                senderDeviceId: Poof.identity.deviceId,
+                senderName: Poof.identity.name,
+                text
+            })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        console.log("[Poof] clipboard sent to", targetDeviceId);
+    }
+
+    /// Chaque tile a été rendue par renderFileTiles / renderClipboardContent.
+    /// On leur ajoute un overlay progress (ring + darken) qui se met à jour.
+    function attachProgressOverlays() {
+        // File tiles : chaque .send-tile (sauf --add) gagne un overlay
+        const fileTiles = sendScroller.querySelectorAll(".send-tile:not(.send-tile--add)");
+        fileTiles.forEach((tile, i) => {
+            const job = sendJobs.filter((j) => j.kind !== "clipboard")[i];
+            if (!job) return;
+            tile.dataset.jobId = job.id;
+            tile.appendChild(makeProgressOverlay());
+        });
+        // Clipboard : le container entier a un overlay
+        if (centerIcon === "clipboard" && sendJobs.length > 0) {
+            const clipJob = sendJobs.find((j) => j.kind === "clipboard");
+            if (clipJob) {
+                sendClipboardBox.dataset.jobId = clipJob.id;
+                sendClipboardBox.appendChild(makeProgressOverlay());
+            }
+        }
+        // Cache le bouton "+" et les X pendant l'envoi (comportement iOS)
+        sendScroller.querySelectorAll(".send-tile--add, .send-tile__del").forEach((el) => (el.style.display = "none"));
+    }
+
+    function makeProgressOverlay() {
+        const o = document.createElement("div");
+        o.className = "tile-progress";
+        o.innerHTML = `
+            <svg class="tile-progress__ring" viewBox="0 0 36 36" aria-hidden="true">
+                <circle class="tile-progress__bg" cx="18" cy="18" r="15"/>
+                <circle class="tile-progress__fg" cx="18" cy="18" r="15" stroke-dasharray="94.25" stroke-dashoffset="94.25"/>
+            </svg>
+            <svg class="tile-progress__check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>
+            <svg class="tile-progress__failed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
+        return o;
+    }
+
+    function updateJobVisual(job) {
+        const host = document.querySelector(`[data-job-id="${job.id}"]`);
+        if (!host) return;
+        const overlay = host.querySelector(".tile-progress");
+        if (!overlay) return;
+        overlay.dataset.state = job.state;
+        // Progress ring : circumference = 2πr = 2π×15 ≈ 94.25
+        const fg = overlay.querySelector(".tile-progress__fg");
+        if (fg) {
+            const circ = 94.25;
+            fg.setAttribute("stroke-dashoffset", `${circ * (1 - job.progress)}`);
+        }
+    }
+
+    function checkAllJobsDone() {
+        if (!sendJobs.every((j) => j.state === "sent" || j.state === "failed")) return;
+        const anyFailed = sendJobs.some((j) => j.state === "failed");
+        // Celebration haptic + success flash
+        haptic(anyFailed ? [30, 40, 15] : [25, 40, 15, 40, 15]);
+        sendCloud.classList.remove("send-cloud--sending");
+        sendCloud.classList.add(anyFailed ? "send-cloud--failed" : "send-cloud--success");
+        setTimeout(() => {
+            sendCloud.classList.remove("send-cloud--success", "send-cloud--failed");
+            // Reset complet
+            for (const t of activeTimers) clearInterval(t);
+            activeTimers.clear();
+            selectedFiles = [];
+            clipboardPayload = null;
+            sendJobs = [];
+            isSending = false;
+            setCenterIcon("cloud");
+            updateHeaderCount();
+            updateCount();
+        }, 1100);
+    }
+
+    // ============================================================
+    // Sheet swipe-down-to-close (iOS-like gesture)
+    // Drag depuis le header + rubber-band + threshold 110px ou velocity
+    // ============================================================
+    document.querySelectorAll(".sheet").forEach((sheet) => {
+        const header = sheet.querySelector(".sheet__header, .sheet__chat-header");
+        if (!header) return;
+
+        let startY = 0, currentY = 0, lastY = 0, lastT = 0, velocity = 0;
+        let dragging = false;
+
+        const onStart = (y) => {
+            if (!sheet.classList.contains("sheet--open")) return;
+            dragging = true;
+            startY = y;
+            currentY = y;
+            lastY = y;
+            lastT = performance.now();
+            velocity = 0;
+            sheet.style.transition = "none";
+        };
+        const onMove = (y) => {
+            if (!dragging) return;
+            currentY = y;
+            const now = performance.now();
+            const dt = now - lastT;
+            if (dt > 0) velocity = (y - lastY) / dt;
+            lastY = y;
+            lastT = now;
+            const delta = Math.max(0, currentY - startY);
+            sheet.style.transform = `translateY(${delta}px)`;
+        };
+        const onEnd = () => {
+            if (!dragging) return;
+            dragging = false;
+            sheet.style.transition = "";
+            const delta = Math.max(0, currentY - startY);
+            const shouldClose = delta > 110 || velocity > 0.6;
+            if (shouldClose) {
+                sheet.style.transform = "";
+                sheet.classList.remove("sheet--open");
+                sheet.setAttribute("aria-hidden", "true");
+            } else {
+                sheet.style.transform = "";
+            }
+        };
+
+        // Touch (mobile) — passive: false pour bloquer le scroll pendant le drag header
+        header.addEventListener("touchstart", (e) => onStart(e.touches[0].clientY), { passive: true });
+        header.addEventListener("touchmove", (e) => {
+            onMove(e.touches[0].clientY);
+            if (dragging && currentY > startY) e.preventDefault();
+        }, { passive: false });
+        header.addEventListener("touchend", onEnd, { passive: true });
+        header.addEventListener("touchcancel", onEnd, { passive: true });
+
+        // Mouse (desktop debug)
+        header.addEventListener("mousedown", (e) => {
+            onStart(e.clientY);
+            const move = (ev) => onMove(ev.clientY);
+            const up = () => {
+                onEnd();
+                window.removeEventListener("mousemove", move);
+                window.removeEventListener("mouseup", up);
+            };
+            window.addEventListener("mousemove", move);
+            window.addEventListener("mouseup", up);
+        });
+    });
+</script>
+
+<!-- ============================================================
+     PHASE 3a — Bootstrap signaling + identity + paired peers
+     Modules ES6 importés depuis /src/ (miroir de pc/src/)
+     ============================================================ -->
+<script type="module">
+    import { DeviceIdentity }   from "./src/device-identity.js";
+    import { SignalingClient }  from "./src/signaling-client.js";
+    import { PairedPeerStore }  from "./src/paired-peer-store.js";
+
+    // Expose globalement pour debug + phases 3b/3c/3d
+    window.Poof = {
+        identity: DeviceIdentity,
+        peers: new PairedPeerStore(),
+        signaling: null,
+        SERVER: "https://poof-fgb8.onrender.com"
+    };
+
+    // Connect au serveur Render + hello avec deviceId PWA
+    async function bootstrap() {
+        const sig = new SignalingClient({ url: Poof.SERVER });
+        Poof.signaling = sig;
+
+        sig.addEventListener("connected", async () => {
+            console.log("[Poof] Signaling connected ✓");
+            try {
+                const online = await sig.hello({
+                    deviceId: DeviceIdentity.deviceId,
+                    name:     DeviceIdentity.name,
+                    platform: DeviceIdentity.platform,
+                    knownPeerIds: Poof.peers.ids
+                });
+                console.log("[Poof] hello ok — deviceId:", DeviceIdentity.deviceId,
+                            "| name:", DeviceIdentity.name,
+                            "| platform:", DeviceIdentity.platform,
+                            "| online peers:", online);
+            } catch (err) {
+                console.error("[Poof] hello failed:", err);
+            }
+        });
+
+        sig.addEventListener("disconnected", (e) => {
+            console.warn("[Poof] Signaling disconnected:", e.detail.reason);
+        });
+        sig.addEventListener("peer-online",  (e) => console.log("[Poof] peer online:",  e.detail.deviceId));
+        sig.addEventListener("peer-offline", (e) => console.log("[Poof] peer offline:", e.detail.deviceId));
+        sig.addEventListener("pair-succeeded", (e) => {
+            console.log("[Poof] pair success:", e.detail.peer);
+            Poof.peers.upsert(e.detail.peer);
+        });
+
+        // ============================================================
+        // PHASE 3d — Réception : listener relay-file-ready + clipboard-inbound
+        // ============================================================
+        // Socket events non-standard : le SignalingClient les émet via
+        // this._emit avec les names camel-case ; ici on écoute via addEventListener
+        // sur la même EventTarget.
+        sig.socket.on("relay-file-ready", async ({ fileId, meta }) => {
+            console.log("[Poof] relay-file-ready:", fileId, meta);
+            try {
+                const res = await fetch(`${Poof.SERVER}/relay/${fileId}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const blob = await res.blob();
+                addReceivedItem({
+                    id: fileId,
+                    kind: "file",
+                    name: meta?.name || "file",
+                    mime: meta?.mime || blob.type || "application/octet-stream",
+                    size: blob.size,
+                    senderId: meta?.senderDeviceId || "",
+                    ts: Date.now(),
+                    blobURL: URL.createObjectURL(blob),
+                    blob
+                });
+                if (navigator.vibrate) navigator.vibrate([15, 30, 15]);
+            } catch (err) {
+                console.error("[Poof] download failed:", err);
+            }
+        });
+
+        sig.socket.on("clipboard-inbound", ({ text, senderName, clipboardId }) => {
+            console.log("[Poof] clipboard-inbound from", senderName);
+            addReceivedItem({
+                id: clipboardId || String(Date.now()),
+                kind: "clipboard",
+                name: senderName ? `From ${senderName}` : "Clipboard",
+                text,
+                ts: Date.now()
+            });
+            if (navigator.vibrate) navigator.vibrate(10);
+        });
+    }
+
+    // ============================================================
+    // Received store — in-memory session (blobs éphémères)
+    // + arrival dopamine sequence (flash blanc + ripple + panel bounce)
+    // ============================================================
+    window.PoofReceived = window.PoofReceived || [];
+    function addReceivedItem(item) {
+        PoofReceived.unshift(item);
+        renderReceived();
+        triggerArrival();
+    }
+
+    function triggerArrival() {
+        const panel = document.getElementById("received-panel");
+        const flash = document.getElementById("received-flash");
+        const ripple = document.getElementById("received-ripple");
+        if (!panel || !flash || !ripple) return;
+        // Flash blanc
+        flash.classList.remove("received-flash--on");
+        void flash.offsetWidth;
+        flash.classList.add("received-flash--on");
+        // Panel bounce
+        panel.classList.remove("received-panel--bounce");
+        void panel.offsetWidth;
+        panel.classList.add("received-panel--bounce");
+        // Ripple ring
+        const ring = document.createElement("div");
+        ring.className = "received-ripple__ring";
+        ripple.appendChild(ring);
+        setTimeout(() => ring.remove(), 900);
+        // Second ring décalé (effet sonar iOS)
+        setTimeout(() => {
+            const r2 = document.createElement("div");
+            r2.className = "received-ripple__ring";
+            ripple.appendChild(r2);
+            setTimeout(() => r2.remove(), 900);
+        }, 120);
+    }
+
+    function renderReceived() {
+        const countEl = document.getElementById("received-count");
+        const countWrap = document.getElementById("received-count-wrap");
+        const empty = document.getElementById("received-empty");
+        const grid = document.getElementById("received-grid");
+        if (!grid) return;
+
+        countEl.textContent = String(PoofReceived.length);
+        countWrap.hidden = PoofReceived.length === 0;
+
+        grid.innerHTML = "";
+
+        if (PoofReceived.length === 0) {
+            empty.style.display = "";
+            grid.hidden = true;
+            return;
+        }
+        empty.style.display = "none";
+        grid.hidden = false;
+
+        // Grid 3-col : chaque tile aspect-ratio 1:1 corner 20 continuous
+        for (const item of PoofReceived) {
+            const tile = document.createElement("button");
+            tile.className = "recv-tile";
+            tile.type = "button";
+            tile.dataset.id = item.id;
+
+            const isImage = item.kind === "file" && item.mime?.startsWith("image/") && item.blobURL;
+
+            if (isImage) {
+                const img = document.createElement("img");
+                img.className = "recv-tile__img";
+                img.src = item.blobURL;
+                img.alt = item.name;
+                tile.appendChild(img);
+            } else if (item.kind === "clipboard") {
+                const glyph = document.createElement("div");
+                glyph.className = "recv-tile__glyph";
+                glyph.innerHTML = `<svg viewBox="0 0 23.9199 28.0171" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M22.069 4.78446L22.069 18.1036C22.069 20.256 20.9327 21.4122 18.787 21.4122L18.6612 21.4122L18.6612 15.7338C18.6612 14.1732 18.3701 13.0512 17.2 11.8611L12.1125 6.70388C10.8252 5.39353 9.87313 5.09529 8.25751 5.09529L6.39363 5.09529L6.39363 4.78446C6.39363 2.62234 7.52991 1.47584 9.67561 1.47584L18.787 1.47584C20.9327 1.47584 22.069 2.62234 22.069 4.78446Z"/><path d="M1.48961 23.2158C1.48961 25.3779 2.63255 26.5244 4.77159 26.5244L13.883 26.5244C16.0287 26.5244 17.1649 25.3681 17.1649 23.2158L17.1649 15.7369L10.125 15.7369C8.88071 15.7369 8.25751 15.1071 8.25751 13.8695L8.25751 6.588L4.77159 6.588C2.63255 6.588 1.48961 7.7345 1.48961 9.89663Z"/></svg>`;
+                tile.appendChild(glyph);
+            } else {
+                const glyph = document.createElement("div");
+                glyph.className = "recv-tile__glyph";
+                glyph.innerHTML = `<svg viewBox="0 0 17.3523 21.2951" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M3.28199 21.2915L13.709 21.2915C15.8578 21.2915 16.991 20.1419 16.991 17.9864L16.991 9.33974L9.51384 9.33974C8.31353 9.33974 7.72093 8.74714 7.72093 7.54372L7.72093 0L3.28199 0C1.14295 0 0 1.15627 0 3.31173L0 17.9864C0 20.1486 1.13629 21.2915 3.28199 21.2915Z"/></svg>`;
+                tile.appendChild(glyph);
+            }
+
+            // Bandeau bas iOS : name 10 semibold + time 9 medium + gradient dark
+            const bar = document.createElement("div");
+            bar.className = "recv-tile__bar";
+            const time = new Date(item.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            bar.innerHTML = `
+                <div class="recv-tile__name">${escapeText(item.name)}</div>
+                <div class="recv-tile__time">${time}</div>`;
+            tile.appendChild(bar);
+
+            // Click : ouvre le blob (nouvel onglet) pour file, copie pour clipboard
+            tile.addEventListener("click", () => {
+                if (item.kind === "clipboard" && navigator.clipboard) {
+                    navigator.clipboard.writeText(item.text || "");
+                } else if (item.blobURL) {
+                    window.open(item.blobURL, "_blank");
+                }
+            });
+            grid.appendChild(tile);
+        }
+    }
+    function formatBytesReceived(n) {
+        if (!n) return "";
+        const u = ["B", "KB", "MB", "GB"];
+        let v = n, i = 0;
+        while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+        return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${u[i]}`;
+    }
+    function escapeText(s) {
+        return String(s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+    }
+    // Rendu initial (état vide)
+    setTimeout(renderReceived, 100);
+
+    bootstrap().catch((err) => console.error("[Poof] bootstrap failed:", err));
+</script>
+
+</body>
+</html>

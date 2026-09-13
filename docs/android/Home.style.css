@@ -1,0 +1,2301 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+html, body {
+    height: 100%;
+    background: linear-gradient(180deg, #005EFF 0%, #797979 100%);
+    overflow: hidden;
+    overscroll-behavior: none;
+    font-family: 'SF Pro', 'SF Pro Display', -apple-system, system-ui, sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+body {
+    min-height: 100vh;
+    position: relative;
+}
+
+/* Viewport wrapper : plein écran, flex center, cache l'overflow */
+.frame-viewport {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow: hidden;
+    background: linear-gradient(180deg, #005EFF 0%, #797979 100%);
+}
+
+/* Frame 1 : 402.5 × 884 (design Xcode PoofHomeView pixel-perfect)
+   Utilise dvh (dynamic viewport height) pour tenir compte de la barre Safari mobile */
+.frame {
+    position: relative;
+    width: 402.5px;
+    height: 884px;
+    flex-shrink: 0;
+    overflow: hidden;
+    transform-origin: top center;
+    transform: scale(min(calc(100vw / 402.5), calc(100dvh / 884)));
+}
+
+/* Background : gradient bleu → gris (Swift LinearGradient #005EFF → #797979) */
+.bg-gradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #005EFF 0%, #797979 100%);
+}
+
+/* Header : Poof wordmark + beta badge + cloud outline (top-right) */
+.header-poof {
+    position: absolute;
+    left: 20px;
+    top: 18px;
+    z-index: 10;
+    font-family: 'SF Pro Rounded', 'SF Pro Display', -apple-system, sans-serif;
+    font-weight: 900;
+    font-size: 36px;
+    line-height: 43px;
+    color: #FFFFFF;
+    text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    letter-spacing: -0.5px;
+}
+.header-beta {
+    position: absolute;
+    left: 118px;
+    top: 32px;
+    z-index: 10;
+    padding: 3px 10px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 999px;
+    font-family: 'SF Pro Rounded', 'SF Pro', -apple-system, sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 14px;
+    color: #FFFFFF;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+.header-cloud {
+    position: absolute;
+    width: 58px;
+    height: 41px;
+    right: 16px;
+    top: 20px;
+    z-index: 10;
+    filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* ==============================================================
+   CARD 1 : Transfer everywhere — 370×394 (Swift .frame exact)
+   ============================================================== */
+.card-transfer {
+    position: absolute;
+    width: 370px;
+    height: 394px;
+    left: 16.25px;
+    top: 90px;
+    background: linear-gradient(180deg, #0A91FF 0%, #0A78FF 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 30px;
+    box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+/* Overlay diagonal noir gauche/droite (Swift LinearGradient leading→trailing) */
+.card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+        rgba(0, 0, 0, 0.3) 0%,
+        transparent 33%,
+        transparent 67%,
+        rgba(0, 0, 0, 0.3) 100%);
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+.card-transfer__title {
+    position: absolute;
+    width: 100%;
+    top: 22px;
+    text-align: center;
+    font-family: 'SF Pro Rounded', 'SF Pro Display', -apple-system, sans-serif;
+    font-weight: 600;
+    font-size: 24px;
+    line-height: 28px;
+    color: #FFFFFF;
+    z-index: 2;
+}
+
+/* Dark diamond glow behind cloud (Swift HorizontalDiamond stroked black blur 50) */
+.card-transfer__cloud-glow {
+    position: absolute;
+    width: 160px;
+    height: 110px;
+    left: 105px;
+    top: 130px;
+    background: radial-gradient(ellipse, rgba(0, 0, 0, 0.5) 0%, transparent 65%);
+    filter: blur(30px);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Cloud fill 96pt (Swift Image cloud.fill size 96) */
+.card-transfer__cloud {
+    position: absolute;
+    width: 130px;
+    height: 90px;
+    left: 120px;
+    top: 130px;
+    filter: drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.5));
+    z-index: 2;
+}
+
+/* White halo blurred sous "Transfer everywhere" (déplacé depuis sous Poof) */
+.card-transfer__brand-glow {
+    position: absolute;
+    width: 230px;
+    height: 33px;
+    left: 70px;
+    top: 55px;
+    background: rgba(255, 255, 255, 0.3);
+    filter: blur(20px);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* "Poof" wordmark 50pt semibold */
+.card-transfer__brand {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: 218px;
+    font-family: 'SF Pro Rounded', 'SF Pro Display', -apple-system, sans-serif;
+    font-weight: 600;
+    font-size: 50px;
+    line-height: 60px;
+    color: #FFFFFF;
+    text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.5);
+    letter-spacing: -0.5px;
+    z-index: 2;
+}
+
+/* Bottom text : Discover exclusivity + underline + price */
+.card-transfer__cta-title {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    bottom: 46px;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 20px;
+    color: #FFFFFF;
+    z-index: 2;
+}
+.card-transfer__cta-underline {
+    position: absolute;
+    width: 145px;
+    height: 1px;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 40px;
+    background: #FFFFFF;
+    z-index: 2;
+}
+.card-transfer__cta-price {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    bottom: 20px;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    z-index: 2;
+}
+
+/* ==============================================================
+   CARD 2 : Help & Feedback — 370×194 (Swift SecondCard exact)
+   ============================================================== */
+.card-help {
+    position: absolute;
+    width: 370px;
+    height: 194px;
+    left: 16.25px;
+    top: 505px;
+    background: linear-gradient(180deg, #0A91FF 0%, #0A78FF 100%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 30px;
+    box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.card-help:active { transform: scale(0.98); }
+
+.card-help__title {
+    position: absolute;
+    width: 100%;
+    top: 30px;
+    text-align: center;
+    font-family: 'SF Pro Rounded', 'SF Pro Display', -apple-system, sans-serif;
+    font-weight: 600;
+    font-size: 24px;
+    line-height: 28px;
+    color: #FFFFFF;
+    z-index: 2;
+}
+.card-help__bubbles {
+    position: absolute;
+    width: 90px;
+    height: 74px;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 90px;
+    filter: drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.5));
+    z-index: 2;
+}
+
+/* ==============================================================
+   Tab Bar bottom (Figma design)
+   ============================================================== */
+.tab-bar-figma {
+    position: absolute;
+    width: 402px;
+    height: 95px;
+    left: 0.5px;
+    bottom: 70px;
+    z-index: 200;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 16px 25px 25px;
+}
+
+/* Liquid Glass container : base sombre translucide + heavy blur + saturation
+   pour refracter le fond bleu du wallpaper, rim highlight top pour la spéculaire,
+   inner shadow bottom pour la profondeur, drop shadow ambient pour lift */
+.tab-buttons {
+    display: flex;
+    align-items: center;
+    padding: 0 3px;
+    height: 58px;
+    position: relative;
+    background:
+        linear-gradient(180deg,
+            rgba(255, 255, 255, 0.14) 0%,
+            rgba(255, 255, 255, 0.06) 45%,
+            rgba(0, 0, 0, 0.12) 100%);
+    border-radius: 1000px;
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.35),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+        0 0 0 0.5px rgba(255, 255, 255, 0.18),
+        0 12px 28px rgba(0, 0, 0, 0.22),
+        0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* Specular highlight top — thin bright arc simulating light reflection */
+.tab-buttons::before {
+    content: "";
+    position: absolute;
+    top: 0.5px;
+    left: 12%;
+    right: 12%;
+    height: 1px;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.55) 50%,
+        transparent 100%);
+    border-radius: 1000px;
+    pointer-events: none;
+}
+
+.tab-btn {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 6px 8px 7px;
+    gap: 3px;
+    width: 98px;
+    height: 58px;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.tab-btn:active {
+    transform: scale(0.92);
+}
+
+/* Active pill : liquid glass-on-glass — gradient blanc top→bas, inner glow,
+   rim tighter, subtle outer bloom */
+.tab-btn--active .tab-selection {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    top: 4px;
+    bottom: 4px;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.32) 0%,
+        rgba(255, 255, 255, 0.18) 55%,
+        rgba(255, 255, 255, 0.10) 100%);
+    border-radius: 100px;
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.55),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.10),
+        0 0 0 0.5px rgba(255, 255, 255, 0.22),
+        0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.tab-icon {
+    width: 22px;
+    height: 22px;
+    color: #FFFFFF;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+    transition: color 0.3s ease, filter 0.3s ease;
+}
+.tab-icon--active {
+    color: #4AA8FF;
+    filter:
+        drop-shadow(0 0 6px rgba(74, 168, 255, 0.55))
+        drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15));
+}
+
+.tab-label {
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-weight: 590;
+    font-size: 10px;
+    line-height: 12px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.92);
+    position: relative;
+    z-index: 1;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+    transition: color 0.3s ease;
+}
+.tab-label--active {
+    color: #4AA8FF;
+    text-shadow: 0 0 8px rgba(74, 168, 255, 0.4);
+}
+
+/* ==============================================================
+   PAGES : swap Home / Send / Received (JS-driven)
+   ============================================================== */
+.pages { position: absolute; inset: 0; pointer-events: none; }
+.page {
+    position: absolute;
+    inset: 0;
+    display: none;
+    pointer-events: auto;
+}
+.page--active { display: block; }
+
+.page-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    text-align: center;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 700;
+    font-size: 28px;
+    letter-spacing: -0.5px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+/* ==============================================================
+   PAGE RECEIVED — pixel-perfect iOS PoofReceivedView
+   Nuages bottom + panel 370×480 offset -40 + grid 3-col tuiles carrées
+   ============================================================== */
+
+/* Nuages décoratifs en BAS (iOS HeroPhoto 600px opacity 75% offset +40) */
+.received-clouds {
+    position: absolute;
+    left: 50%;
+    bottom: -40px;
+    width: 600px;
+    max-width: none;
+    transform: translateX(-50%);
+    opacity: 0.75;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Panel glass 370×480, corner 34 continuous, positionné avec offset -40 */
+.received-panel {
+    position: absolute;
+    left: 50%;
+    top: 190px;
+    width: 370px;
+    height: 480px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.28) 0%,
+        rgba(255, 255, 255, 0.14) 100%);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 0.8px solid rgba(255, 255, 255, 0.35);
+    border-radius: 34px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.10),
+        0 8px 24px rgba(0, 0, 0, 0.22);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 16px 18px 18px;
+    z-index: 1;
+}
+/* Bounce spring iOS à l'arrivée d'un fichier */
+@keyframes received-panel-bounce {
+    0%   { transform: translateX(-50%) scale(1); }
+    35%  { transform: translateX(-50%) scale(1.04); }
+    100% { transform: translateX(-50%) scale(1); }
+}
+.received-panel--bounce {
+    animation: received-panel-bounce 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Header : "Last 24h" 18 bold + · + count 15 semibold + Spacer + "All history >" */
+.received-header {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 14px;
+    flex-shrink: 0;
+}
+.received-header__title {
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: #FFFFFF;
+    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.20);
+}
+.received-header__count-sep {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+.received-header__sep,
+.received-header__count {
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.65);
+}
+.received-header__spacer { flex: 1; }
+.received-header__history {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.90);
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.20);
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.received-header__history:active { transform: scale(0.94); }
+.received-header__history svg { width: 11px; height: 11px; }
+
+.received-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Empty state iOS : icône tray.and.arrow.down dans cercle glass */
+.received-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
+    padding: 20px;
+}
+.received-empty__icon {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.10);
+    border: 0.6px solid rgba(255, 255, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.85);
+}
+.received-empty__icon svg { width: 40px; height: 40px; }
+.received-empty__title {
+    font-family: 'SF Pro Rounded', 'SF Pro', -apple-system, sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    color: #FFFFFF;
+    letter-spacing: -0.3px;
+}
+.received-empty__sub {
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.65);
+    max-width: 240px;
+    line-height: 1.4;
+}
+
+/* Grid 3-col scroll — chaque tile aspect-ratio 1:1 */
+.received-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    align-content: start;
+}
+.received-grid::-webkit-scrollbar { display: none; }
+
+/* Tile : ratio 1:1, corner 20 continuous, fond gris 0.85 (comme iOS Color(white: 0.85)) */
+.recv-tile {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 20px;
+    overflow: hidden;
+    background: rgb(217, 217, 217);
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: recv-tile-in 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.recv-tile:active { transform: scale(0.94); }
+@keyframes recv-tile-in {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.recv-tile__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.recv-tile__glyph {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgb(115, 115, 115);
+}
+.recv-tile__glyph svg { width: 32px; height: 32px; }
+
+/* Bandeau bas : gradient noir → transparent, name 10 semibold + time 9 medium */
+.recv-tile__bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 6px 8px;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.55) 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    color: #FFFFFF;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    text-align: left;
+}
+.recv-tile__name {
+    font-size: 10px;
+    font-weight: 600;
+    color: #FFFFFF;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.recv-tile__time {
+    font-size: 9px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+/* Ripple layer : rings blancs qui se propagent depuis le centre du panel */
+.received-ripple {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 34px;
+}
+.received-ripple__ring {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border: 2px solid rgba(255, 255, 255, 0.55);
+    border-radius: 50%;
+    opacity: 1;
+    animation: ripple-out 0.85s ease-out forwards;
+}
+@keyframes ripple-out {
+    from { transform: scale(0.5); opacity: 0.75; }
+    to   { transform: scale(4.0); opacity: 0; }
+}
+
+/* Flash blanc court à l'arrivée d'un fichier */
+.received-flash {
+    position: absolute;
+    inset: 0;
+    background: #FFFFFF;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+@keyframes received-flash {
+    0%   { opacity: 0; }
+    10%  { opacity: 0.22; }
+    100% { opacity: 0; }
+}
+.received-flash--on { animation: received-flash 0.5s ease-out; }
+
+/* ==============================================================
+   PAGE SEND — pixel-perfect Figma (frame 412×917 → scaled 402.5)
+   ============================================================== */
+
+/* Bande de nuages décorative (Figma image 2 : 402×182 top:31)
+   Même PNG que iOS HeroPhoto — flou léger + drop-shadow */
+.send-clouds {
+    position: absolute;
+    width: 402px;
+    height: 182.45px;
+    left: 0.5px;
+    top: 0;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+/* Hero row : source (iPhone left) → central cloud → destination (MacBook right)
+   Y range Figma 174-263. Le glow rect derrière ajoute une lumière diffuse. */
+.send-hero {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 154px;
+    height: 109px;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: end;
+    justify-items: center;
+    pointer-events: none;
+}
+
+/* Vector 2 (Figma) : rect blur derrière le cloud, lumière diffuse D9D9D9 17% */
+.send-hero__glow {
+    position: absolute;
+    width: 82px;
+    height: 58.5px;
+    left: 168px;
+    top: 47.5px;
+    background: rgba(217, 217, 217, 0.17);
+    filter: blur(2.65px);
+    border-radius: 30px;
+}
+
+/* Devices latéraux (source/dest) — glyphes SF blancs 40% + label 16pt */
+/* Device wrapper : flex item, labels alignés au même bas (align-items: flex-end sur .send-hero)
+   Gap symétrique de 34px avec le cloud central via flex gap. */
+.send-hero__device {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.send-hero__device--left {
+    transform: translateX(10px);
+}
+
+.send-hero__glyph {
+    font-family: 'SF Pro Display', -apple-system, sans-serif;
+    font-weight: 700;
+    font-size: 48px;
+    line-height: 57px;
+    color: rgba(255, 255, 255, 0.4);
+    text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* SF Symbol iPhone SVG — même hauteur visuelle que le glyph 48pt */
+.send-hero__icon {
+    height: 55px;
+    width: auto;
+    filter: drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.25));
+    transform: translateY(5px);
+}
+/* Laptop est proportionnellement plus large (aspect 1.77) — ajuster la hauteur pour équilibre visuel */
+.send-hero__icon--laptop {
+    height: 42px;
+    transform: none;
+}
+.send-hero__glyph--laptop {
+    font-size: 55px;
+    line-height: 66px;
+}
+
+.send-hero__label {
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-weight: 590;
+    font-size: 16px;
+    line-height: 19px;
+    color: #FFFFFF;
+    text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    margin-top: 8px;
+}
+
+/* Central cloud circle : gradient cyan→blue radial highlight, border white, cloud glyph */
+.send-cloud {
+    position: relative;
+    pointer-events: auto;
+    width: 109px;
+    height: 109px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background:
+        radial-gradient(50% 50% at 50% 50%,
+            rgba(255, 255, 255, 0.28) 0%,
+            rgba(255, 255, 255, 0) 65%),
+        linear-gradient(180deg, #0AE2FF 0%, #0000FF 100%);
+    border: 1px solid #FFFFFF;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.35),
+        0 4px 20px rgba(0, 94, 255, 0.55),
+        0 4px 4px rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.send-cloud__glyph {
+    font-family: 'SF Pro Display', -apple-system, sans-serif;
+    font-weight: 700;
+    font-size: 48px;
+    line-height: 57px;
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+    margin-top: 4px;
+}
+
+/* SF Symbol SVGs dans le cercle central — morph entre 4 états
+   (cloud / photo / doc / clipboard) avec spring iOS response 0.4 damping 0.75 */
+.send-cloud {
+    cursor: pointer;
+    touch-action: pan-y;
+    transition: transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.send-cloud__icon {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    height: auto;
+    filter: drop-shadow(0px 4px 4px rgba(0, 0, 0, 0.25));
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 0;
+    transition:
+        transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 0.22s ease-out;
+    pointer-events: none;
+}
+/* Tailles spécifiques par icône pour matcher visuellement le poids iOS */
+.send-cloud__icon--cloud    { width: 62px; }
+.send-cloud__icon--photo    { width: 54px; }
+.send-cloud__icon--doc      { width: 40px; }
+.send-cloud__icon--clipboard{ width: 46px; }
+
+/* Icon actif : plein opacité + scale 1, autres cachés */
+.send-cloud[data-icon="cloud"]     .send-cloud__icon--cloud,
+.send-cloud[data-icon="photo"]     .send-cloud__icon--photo,
+.send-cloud[data-icon="doc"]       .send-cloud__icon--doc,
+.send-cloud[data-icon="clipboard"] .send-cloud__icon--clipboard {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+
+/* Badge compteur de fichiers sélectionnés — masqué (le count est déjà dans le preview panel) */
+.send-cloud__count { display: none; }
+
+/* ==============================================================
+   SEND PREVIEW PANEL — cloudPanel iOS pixel-perfect
+   Apparaît quand des fichiers sont sélectionnés, 370×230 glass rect
+   corner 34 continuous. Tiles horizontal scroll dedans.
+   ============================================================== */
+.send-preview {
+    position: absolute;
+    left: 50%;
+    top: 283px;
+    width: 370px;
+    height: 230px;
+    transform: translateX(-50%) scale(0.92);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 3;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.28) 0%,
+        rgba(255, 255, 255, 0.14) 100%);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 0.8px solid rgba(255, 255, 255, 0.35);
+    border-radius: 34px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.10),
+        0 8px 24px rgba(0, 0, 0, 0.28);
+    transition:
+        opacity 0.28s ease-out,
+        transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.send-preview--open {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Quand le panel est ouvert : les cards en dessous (chips / premium / devices)
+   glissent vers le bas pour libérer l'espace visuel — spring iOS matching */
+.page--send.page--send--panel-open .send-types,
+.page--send.page--send--panel-open .send-premium,
+.page--send.page--send--panel-open .send-devices {
+    transform: translate(-50%, 245px);
+}
+.send-types,
+.send-premium,
+.send-devices {
+    transition: transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Header bar iOS "X/Y sent" + failed badge + spinner (visible pendant l'envoi) */
+.send-preview__header {
+    position: absolute;
+    top: 8px;
+    left: 20px;
+    right: 52px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 4;
+    color: #FFFFFF;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    pointer-events: none;
+}
+.send-preview__spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-top-color: #FFFFFF;
+    border-radius: 50%;
+    animation: pair-spin 0.8s linear infinite;
+    flex-shrink: 0;
+}
+.send-preview__failed {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: rgb(255, 140, 140);
+    font-size: 12px;
+    font-weight: 600;
+}
+.send-preview__failed svg { width: 12px; height: 12px; }
+.send-preview__failed[hidden] { display: none; }
+
+.send-preview__close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.22);
+    border: 0.6px solid rgba(255, 255, 255, 0.30);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.send-preview__close:active { transform: scale(0.9); }
+.send-preview__close svg { width: 12px; height: 12px; }
+
+/* Scroll horizontal des tiles — style iOS photoScrollerPreSend */
+.send-preview__scroller {
+    display: flex;
+    gap: 10px;
+    padding: 30px 16px 20px;
+    height: 100%;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.send-preview__scroller::-webkit-scrollbar { display: none; }
+
+/* Tile photo (default) : 110×150 portrait avec rounded corners iOS */
+.send-tile {
+    position: relative;
+    width: 110px;
+    height: 150px;
+    border-radius: 18px;
+    background: rgba(0, 0, 0, 0.20);
+    border: 0.6px solid rgba(255, 255, 255, 0.18);
+    overflow: hidden;
+    flex-shrink: 0;
+    color: #FFFFFF;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.send-tile:active { transform: scale(0.96); }
+.send-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Tile doc / clipboard / video : layout vertical avec icône + nom */
+.send-tile--doc,
+.send-tile--clipboard,
+.send-tile--video {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 10px;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.18) 0%,
+        rgba(255, 255, 255, 0.06) 100%);
+    color: rgba(255, 255, 255, 0.90);
+}
+.send-tile--doc svg,
+.send-tile--clipboard svg {
+    width: 34px;
+    height: 40px;
+    color: rgba(255, 255, 255, 0.75);
+}
+.send-tile__glyph {
+    font-size: 34px;
+    color: rgba(255, 255, 255, 0.75);
+}
+.send-tile__name {
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+    color: rgba(255, 255, 255, 0.92);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+}
+.send-tile__meta {
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.58);
+}
+
+/* Delete X en haut à droite de chaque tile */
+.send-tile__del {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #FFFFFF;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    z-index: 2;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.send-tile__del:active { transform: scale(0.85); }
+.send-tile__del svg { width: 10px; height: 10px; }
+
+/* Tile "+" : ajouter plus de fichiers — dashed border style Apple picker */
+.send-tile--add {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1.2px dashed rgba(255, 255, 255, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.75);
+    padding: 0;
+}
+.send-tile--add svg { width: 22px; height: 22px; }
+
+/* ==============================================================
+   Clipboard content — miroir iOS clipboardPanel
+   Empty state (icône + "Nothing to send yet" + Paste button)
+   OU preview (text scroll / URL row / image scaledToFit)
+   ============================================================== */
+.send-preview__clipboard {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+    padding: 30px 20px 20px;
+    color: #FFFFFF;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+}
+
+/* Force le respect de l'attribut HTML `hidden` malgré `display: flex` */
+.send-preview__scroller[hidden],
+.send-preview__clipboard[hidden] {
+    display: none !important;
+}
+.clip-empty__glyph {
+    width: 40px;
+    height: 40px;
+    color: #FFFFFF;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+}
+.clip-empty__text {
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.70);
+}
+/* Paste button iOS PasteButton style — capsule white */
+.clip-empty__paste {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: #FFFFFF;
+    color: #000000;
+    border: none;
+    border-radius: 999px;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.clip-empty__paste:active { transform: scale(0.94); }
+.clip-empty__paste svg { width: 16px; height: 16px; color: #000000; }
+
+/* Preview payload : text / URL / image — même rounded rect 14 + fond blanc 10% */
+.clip-preview {
+    background: rgba(255, 255, 255, 0.10);
+    border-radius: 14px;
+    padding: 16px;
+    max-width: 330px;
+    width: 100%;
+    color: #FFFFFF;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+}
+.clip-preview--text {
+    width: 330px;
+    height: 180px;
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    -webkit-overflow-scrolling: touch;
+}
+.clip-preview--text::-webkit-scrollbar { width: 4px; }
+.clip-preview--text::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 2px;
+}
+.clip-preview--url {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.clip-preview--url svg {
+    width: 22px;
+    height: 22px;
+    color: #FFFFFF;
+    flex-shrink: 0;
+}
+.clip-preview__url {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: #FFFFFF;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    word-break: break-all;
+}
+.clip-preview--image {
+    background: transparent;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 220px;
+    max-height: 180px;
+}
+.clip-preview--image img {
+    max-width: 100%;
+    max-height: 180px;
+    border-radius: 14px;
+    object-fit: contain;
+}
+
+/* ==============================================================
+   PHASE 2 — Progress overlay per-tile + cloud sending/success states
+   ============================================================== */
+.tile-progress {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: inherit;
+    color: #FFFFFF;
+    pointer-events: none;
+    transition: background 0.3s ease;
+}
+.tile-progress__ring {
+    width: 44px;
+    height: 44px;
+    transform: rotate(-90deg);
+    transition: opacity 0.3s ease;
+}
+.tile-progress__bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.25);
+    stroke-width: 3;
+}
+.tile-progress__fg {
+    fill: none;
+    stroke: #FFFFFF;
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.15s linear;
+}
+.tile-progress__check,
+.tile-progress__failed {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    color: #FFFFFF;
+    opacity: 0;
+    transform: scale(0.4);
+    transition: opacity 0.25s ease-out, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* État "sent" : cache ring + affiche check dans cercle vert */
+.tile-progress[data-state="sent"] {
+    background: rgba(52, 199, 89, 0.75); /* iOS green */
+}
+.tile-progress[data-state="sent"] .tile-progress__ring { opacity: 0; }
+.tile-progress[data-state="sent"] .tile-progress__check {
+    opacity: 1;
+    transform: scale(1);
+}
+/* État "failed" : cercle rouge + X */
+.tile-progress[data-state="failed"] {
+    background: rgba(255, 69, 58, 0.75); /* iOS red */
+}
+.tile-progress[data-state="failed"] .tile-progress__ring { opacity: 0; }
+.tile-progress[data-state="failed"] .tile-progress__failed {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Cloud "sending" state : halo pulse bleu qui rayonne + rotation subtile */
+@keyframes cloud-pulse {
+    0%, 100% { box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.35),
+        0 4px 20px rgba(0, 94, 255, 0.55),
+        0 4px 4px rgba(0, 0, 0, 0.25),
+        0 0 0 0 rgba(10, 226, 255, 0.6); }
+    50% { box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.35),
+        0 4px 30px rgba(0, 94, 255, 0.75),
+        0 4px 4px rgba(0, 0, 0, 0.25),
+        0 0 0 14px rgba(10, 226, 255, 0); }
+}
+.send-cloud--sending {
+    animation: cloud-pulse 1.4s ease-in-out infinite;
+}
+
+/* Cloud "success" flash : brief green glow + scale bounce */
+@keyframes cloud-success {
+    0%   { transform: scale(1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 20px rgba(52, 199, 89, 0.60), 0 4px 4px rgba(0, 0, 0, 0.25); }
+    40%  { transform: scale(1.10); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.50), 0 8px 32px rgba(52, 199, 89, 0.95), 0 4px 4px rgba(0, 0, 0, 0.25); }
+    100% { transform: scale(1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 20px rgba(0, 94, 255, 0.55), 0 4px 4px rgba(0, 0, 0, 0.25); }
+}
+.send-cloud--success {
+    animation: cloud-success 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Cloud "failed" flash : brief red glow */
+@keyframes cloud-failed {
+    0%   { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 20px rgba(255, 69, 58, 0.60), 0 4px 4px rgba(0, 0, 0, 0.25); }
+    50%  { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 28px rgba(255, 69, 58, 0.90), 0 4px 4px rgba(0, 0, 0, 0.25); }
+    100% { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 20px rgba(0, 94, 255, 0.55), 0 4px 4px rgba(0, 0, 0, 0.25); }
+}
+.send-cloud--failed {
+    animation: cloud-failed 1s ease-in-out forwards;
+}
+
+/* Launch animation : bump up → fly up + fade → reappear en fade-in (pas de snap visible)
+   Le reset transform arrive pendant que opacity=0, donc invisible */
+@keyframes cloud-launch {
+    0%   { transform: translateY(0) scale(1);       opacity: 1; }
+    22%  { transform: translateY(-28px) scale(1.10); opacity: 1; }
+    55%  { transform: translateY(-170px) scale(0.30); opacity: 0; }
+    /* Hidden — on ramène le cloud à sa position d'origine (invisible) */
+    70%  { transform: translateY(0) scale(0.5);    opacity: 0; }
+    /* Reappear en fade-in avec scale up subtil */
+    100% { transform: translateY(0) scale(1);      opacity: 1; }
+}
+.send-cloud--launching {
+    animation: cloud-launch 0.9s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* Card Types : 3 squares (photo / file / history) — glass rect Apple radius */
+.send-types {
+    position: absolute;
+    width: 370px;
+    height: 242px;
+    left: 50%;
+    top: 283px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.28) 0%,
+        rgba(255, 255, 255, 0.14) 100%);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 0.8px solid rgba(255, 255, 255, 0.35);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.10),
+        0 4px 12px rgba(0, 0, 0, 0.22);
+    border-radius: 28px;
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding: 15px 16px 0;
+}
+.send-type {
+    width: 99px;
+    height: 99px;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.28) 0%,
+        rgba(255, 255, 255, 0.14) 100%);
+    border: 0.8px solid rgba(255, 255, 255, 0.30);
+    border-radius: 22.37%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.10),
+        0 2px 8px rgba(0, 0, 0, 0.18);
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+}
+.send-type:active { transform: scale(0.94); }
+
+.send-type__glyph {
+    font-family: 'SF Pro Display', -apple-system, sans-serif;
+    font-weight: 700;
+    font-size: 36px;
+    line-height: 43px;
+    color: rgba(255, 255, 255, 0.72);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+.send-type--photo .send-type__glyph { font-size: 32px; line-height: 38px; }
+
+/* Poof Premium upsell bar — iOS spec exacte : 320×100, glass regular,
+   sparkles left (40px slot), title 15 heavy + sub 11.5 medium 75%, chevron 13 heavy 70% */
+.send-premium {
+    position: absolute;
+    width: 320px;
+    height: 100px;
+    left: 50%;
+    top: 415px;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 18px;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.30) 0%,
+        rgba(255, 255, 255, 0.16) 100%);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 0.8px solid rgba(255, 255, 255, 0.38);
+    border-radius: 24px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.50),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.10),
+        0 4px 12px rgba(0, 0, 0, 0.22);
+    color: #FFFFFF;
+    font-family: 'SF Pro', 'SF Pro Display', -apple-system, sans-serif;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.send-premium:active { transform: translateX(-50%) scale(0.97); }
+
+.send-premium__icon {
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+    flex-shrink: 0;
+}
+.send-premium__icon svg {
+    width: 26px;
+    height: 26px;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.35));
+}
+
+.send-premium__text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+.send-premium__title {
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.05;
+    color: #FFFFFF;
+    letter-spacing: -0.2px;
+}
+.send-premium__sub {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.75);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.1px;
+}
+
+.send-premium__chevron {
+    width: 13px;
+    height: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    flex-shrink: 0;
+}
+
+/* SF Symbol SVG dans les carrés Types (photo / file / history) */
+.send-type__icon {
+    height: 42px;
+    width: auto;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+}
+
+/* Card Devices : 3 slot circles (paired devices) — glass rect large radius 35 */
+.send-devices {
+    position: absolute;
+    width: 370px;
+    height: 172px;
+    left: 50%;
+    top: 545px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.28) 0%,
+        rgba(255, 255, 255, 0.14) 100%);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 0.8px solid rgba(255, 255, 255, 0.35);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.10),
+        0 4px 12px rgba(0, 0, 0, 0.22);
+    border-radius: 28px;
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding: 14px 12px;
+}
+.send-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.send-slot:active { transform: scale(0.94); }
+
+.send-slot__circle {
+    width: 109px;
+    height: 109px;
+    border-radius: 50%;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.28) 0%,
+        rgba(255, 255, 255, 0.14) 100%);
+    border: 0.8px solid rgba(255, 255, 255, 0.30);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.10),
+        0 4px 12px rgba(0, 0, 0, 0.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.send-slot__glyph {
+    font-family: 'SF Pro Display', -apple-system, sans-serif;
+    font-weight: 700;
+    font-size: 48px;
+    line-height: 57px;
+    color: rgba(255, 255, 255, 0.42);
+    text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+}
+.send-slot__glyph--laptop { font-size: 55px; line-height: 66px; }
+
+/* SF Symbol plus SVG dans les cercles Devices — carré ~26px centré */
+.send-slot__icon {
+    width: 26px;
+    height: 26px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+}
+
+.send-slot__label {
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-weight: 590;
+    font-size: 16px;
+    line-height: 19px;
+    color: #FFFFFF;
+    text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* ==============================================================
+   SHEET : Help & Feedback — iOS PoofHelpMenu pixel-perfect
+   Full-frame overlay, slide-up from bottom, gradient bleu → gris
+   ============================================================== */
+.sheet {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    background: linear-gradient(180deg, #005EFF 0%, #797979 100%);
+    display: flex;
+    flex-direction: column;
+    transform: translateY(100%);
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        transform 0.42s cubic-bezier(0.32, 0.72, 0, 1),
+        opacity 0.28s ease-out;
+}
+.sheet--open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Grabber pill iOS : 36×5 white 30% centré tout en haut de la sheet */
+.sheet::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 36px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.30);
+    border-radius: 999px;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+/* Header : title 22 heavy white + shadow + X button 32×32 circle white 18%
+   + zone tactile pour swipe-down-to-close */
+.sheet__header {
+    display: flex;
+    align-items: center;
+    padding: 20px 20px 12px;
+    flex-shrink: 0;
+    cursor: grab;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.sheet__header:active { cursor: grabbing; }
+.sheet__title {
+    flex: 1;
+    font-family: 'SF Pro Display', 'SF Pro', -apple-system, sans-serif;
+    font-weight: 900;
+    font-size: 22px;
+    line-height: 26px;
+    color: #FFFFFF;
+    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.25);
+    letter-spacing: -0.4px;
+}
+.sheet__close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+                background 0.2s ease;
+}
+.sheet__close:active {
+    transform: scale(0.9);
+    background: rgba(255, 255, 255, 0.28);
+}
+.sheet__close svg { width: 14px; height: 14px; }
+
+/* Scroll content : spacing 14 entre les option cards, padding matching iOS */
+.sheet__scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.sheet__scroll::-webkit-scrollbar { display: none; }
+
+/* Option card : glass regular interactive, corner 20 continuous, HStack layout */
+.opt-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(255, 255, 255, 0.10) 100%);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 0.8px solid rgba(255, 255, 255, 0.28);
+    border-radius: 20px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.40),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.08),
+        0 4px 12px rgba(0, 0, 0, 0.18);
+    text-align: left;
+    color: #FFFFFF;
+    font-family: 'SF Pro', 'SF Pro Display', -apple-system, sans-serif;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.opt-card:active { transform: scale(0.98); }
+
+.opt-card__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    border: 0.6px solid rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+    flex-shrink: 0;
+}
+.opt-card__icon svg { width: 20px; height: 20px; }
+
+.opt-card__text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+.opt-card__title {
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.15;
+    color: #FFFFFF;
+    letter-spacing: -0.2px;
+}
+.opt-card__sub {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.68);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.opt-card__chev {
+    width: 13px;
+    height: 13px;
+    color: rgba(255, 255, 255, 0.55);
+    flex-shrink: 0;
+}
+
+/* Legal row : Terms + Privacy pills — capsule glass */
+.sheet__legal {
+    display: flex;
+    gap: 8px;
+    padding-top: 6px;
+}
+.sheet__pill {
+    padding: 8px 14px;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(255, 255, 255, 0.10) 100%);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 0.8px solid rgba(255, 255, 255, 0.28);
+    border-radius: 999px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.40);
+    color: rgba(255, 255, 255, 0.85);
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 590;
+    text-decoration: none;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.sheet__pill:active { transform: scale(0.94); }
+
+/* ==============================================================
+   SHEET FAQ — iOS PoofFAQView pixel-perfect
+   Spacing 10, padding H 16 B 24, corner 18 continuous, glass regular
+   Row : question 15 semibold + chevron 12 bold 70% → answer 13 medium 80%
+   ============================================================== */
+.sheet__scroll--faq {
+    padding: 12px 16px 24px;
+    gap: 10px;
+}
+.faq-row {
+    padding: 14px 16px;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(255, 255, 255, 0.10) 100%);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 0.8px solid rgba(255, 255, 255, 0.28);
+    border-radius: 18px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.40),
+        0 4px 12px rgba(0, 0, 0, 0.18);
+    color: #FFFFFF;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+.faq-row__head {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+.faq-row__q {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: #FFFFFF;
+}
+.faq-row__chev {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.70);
+    margin-top: 4px;
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.faq-row--open .faq-row__chev { transform: rotate(180deg); }
+.faq-row__a {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-top: 0;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.80);
+    transition:
+        max-height 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+        opacity 0.28s ease-out,
+        margin-top 0.35s ease;
+}
+.faq-row--open .faq-row__a {
+    max-height: 220px;
+    opacity: 1;
+    margin-top: 10px;
+}
+
+/* ==============================================================
+   SHEET Chat (Bug fix & improvement) — iOS PoofSupportChat pixel-perfect
+   Header custom (avatar 40 + title 17 heavy + sub 12 medium 65%)
+   Empty state + input bar bottom (capsule field + white paperplane btn)
+   ============================================================== */
+.sheet__chat-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 20px 14px;
+    flex-shrink: 0;
+    cursor: grab;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.sheet__chat-header:active { cursor: grabbing; }
+.sheet__chat-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+    flex-shrink: 0;
+}
+.sheet__chat-avatar svg { width: 18px; height: 18px; }
+.sheet__chat-titlewrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.sheet__chat-title {
+    font-family: 'SF Pro Display', 'SF Pro', -apple-system, sans-serif;
+    font-size: 17px;
+    font-weight: 900;
+    line-height: 1.1;
+    color: #FFFFFF;
+    letter-spacing: -0.3px;
+}
+.sheet__chat-sub {
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.sheet__chat-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.sheet__chat-body::-webkit-scrollbar { display: none; }
+
+.sheet__chat-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px;
+    text-align: center;
+}
+.sheet__chat-empty-icon {
+    width: 40px;
+    height: 40px;
+    color: rgba(255, 255, 255, 0.55);
+}
+.sheet__chat-empty-title {
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.75);
+}
+.sheet__chat-empty-sub {
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.55);
+    line-height: 1.4;
+}
+
+/* Input bar : capsule field + paperplane send button */
+.sheet__chat-input {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.20);
+    border-top: 0.5px solid rgba(255, 255, 255, 0.10);
+    flex-shrink: 0;
+}
+.sheet__chat-field {
+    flex: 1;
+    min-height: 40px;
+    max-height: 100px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 0.6px solid rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+    color: #FFFFFF;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 1.35;
+    overflow-y: auto;
+    outline: none;
+    -webkit-user-select: text;
+    user-select: text;
+    caret-color: #FFFFFF;
+}
+.sheet__chat-field:empty:before {
+    content: attr(data-placeholder);
+    color: rgba(255, 255, 255, 0.45);
+    pointer-events: none;
+}
+.sheet__chat-send {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000000;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+}
+.sheet__chat-send:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.sheet__chat-send:not(:disabled):active { transform: scale(0.9); }
+.sheet__chat-send svg { width: 16px; height: 16px; transform: rotate(0deg); }
+
+/* Chat bubbles (générées via JS après envoi) */
+.chat-bubble {
+    display: flex;
+    max-width: 100%;
+}
+.chat-bubble--me { justify-content: flex-end; padding-left: 40px; }
+.chat-bubble--admin { justify-content: flex-start; padding-right: 40px; }
+
+.chat-bubble__text {
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.35;
+    word-wrap: break-word;
+    max-width: 100%;
+}
+.chat-bubble--me .chat-bubble__text {
+    background: #FFFFFF;
+    color: #000000;
+}
+.chat-bubble--admin .chat-bubble__text {
+    background: rgba(255, 255, 255, 0.15);
+    border: 0.6px solid rgba(255, 255, 255, 0.20);
+    color: #FFFFFF;
+}
+
+/* ==============================================================
+   SHEET What's new — iOS PoofWhatsNewView pixel-perfect
+   Release card : version 17 heavy + · + date 13 semibold 65%
+   Highlights avec sparkle 12 bold + text 14 medium 90%
+   ============================================================== */
+.sheet__scroll--whatsnew {
+    padding: 12px 16px 24px;
+    gap: 16px;
+}
+.release-card {
+    padding: 16px;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(255, 255, 255, 0.10) 100%);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 0.8px solid rgba(255, 255, 255, 0.28);
+    border-radius: 20px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.40),
+        0 4px 12px rgba(0, 0, 0, 0.18);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    color: #FFFFFF;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+}
+.release-card__head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+.release-card__version {
+    font-size: 17px;
+    font-weight: 900;
+    color: #FFFFFF;
+    letter-spacing: -0.3px;
+}
+.release-card__sep {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 15px;
+}
+.release-card__date {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.65);
+}
+.release-card__list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.release-card__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+.release-card__spark {
+    width: 12px;
+    height: 12px;
+    color: rgba(255, 255, 255, 0.90);
+    flex-shrink: 0;
+    margin-top: 4px;
+}
+.release-card__text {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.90);
+}
+
+/* ==============================================================
+   SHEET Add Device (iOS PoofAddDeviceSheet pixel-perfect)
+   Sections avec header + rows glass, méthodes avec icône bleue 36×36 corner 10
+   ============================================================== */
+.sheet__scroll--pair {
+    padding: 12px 20px 24px;
+    gap: 24px;
+}
+.pair-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.pair-section__header {
+    padding: 0 4px 4px;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: rgba(255, 255, 255, 0.65);
+    text-transform: uppercase;
+}
+
+/* Nearby empty state : spinner + texte */
+.pair-nearby-empty {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(255, 255, 255, 0.10) 100%);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 0.8px solid rgba(255, 255, 255, 0.28);
+    border-radius: 20px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.40),
+        0 4px 12px rgba(0, 0, 0, 0.18);
+    color: #FFFFFF;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+}
+.pair-nearby-empty__spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-top-color: rgba(255, 255, 255, 0.90);
+    border-radius: 50%;
+    animation: pair-spin 0.9s linear infinite;
+    flex-shrink: 0;
+}
+@keyframes pair-spin {
+    to { transform: rotate(360deg); }
+}
+.pair-nearby-empty__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #FFFFFF;
+}
+.pair-nearby-empty__sub {
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+/* Method row : icône blue square 36×36 + title body + sub caption + chevron */
+.pair-method {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: linear-gradient(180deg,
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(255, 255, 255, 0.10) 100%);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 0.8px solid rgba(255, 255, 255, 0.28);
+    border-radius: 20px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.40),
+        0 4px 12px rgba(0, 0, 0, 0.18);
+    color: #FFFFFF;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    width: 100%;
+}
+.pair-method:active { transform: scale(0.98); }
+
+.pair-method__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #0A84FF;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        0 2px 6px rgba(10, 132, 255, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+    flex-shrink: 0;
+}
+.pair-method__icon svg { width: 20px; height: 20px; }
+
+.pair-method__text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.pair-method__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #FFFFFF;
+}
+.pair-method__sub {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
+    color: rgba(255, 255, 255, 0.65);
+}
+.pair-method__chev {
+    width: 13px;
+    height: 13px;
+    color: rgba(255, 255, 255, 0.55);
+    flex-shrink: 0;
+}
+
+/* ==============================================================
+   SHEET Code Entry + Invitation — hero centré (icône bleue 48pt + title + sub + input/btn)
+   ============================================================== */
+.sheet__scroll--centered {
+    align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+    padding: 32px 24px 32px;
+    gap: 20px;
+}
+.pair-hero-icon {
+    width: 48px;
+    height: 48px;
+    color: #0A84FF;
+    filter: drop-shadow(0 4px 12px rgba(10, 132, 255, 0.40));
+}
+.pair-hero-title {
+    font-family: 'SF Pro Display', 'SF Pro', -apple-system, sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: #FFFFFF;
+    letter-spacing: -0.4px;
+}
+.pair-hero-sub {
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.72);
+    max-width: 320px;
+}
+
+/* Code input : monospaced tracking wide, gros et centré comme iOS */
+.pair-code-input {
+    width: 100%;
+    max-width: 300px;
+    margin-top: 6px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 0.6px solid rgba(255, 255, 255, 0.25);
+    border-radius: 14px;
+    color: #FFFFFF;
+    font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+    font-size: 28px;
+    font-weight: 800;
+    text-align: center;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    outline: none;
+    caret-color: #FFFFFF;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+.pair-code-input:focus {
+    border-color: rgba(255, 255, 255, 0.50);
+    background: rgba(255, 255, 255, 0.20);
+}
+.pair-code-input::placeholder {
+    color: rgba(255, 255, 255, 0.30);
+    letter-spacing: 4px;
+}
+
+/* Primary button (Pair / Share link) : blue quand actif, gris quand disabled */
+.pair-primary-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 300px;
+    padding: 14px 24px;
+    background: #0A84FF;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 14px;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        0 4px 12px rgba(10, 132, 255, 0.35);
+    transition:
+        transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+        background 0.2s ease,
+        opacity 0.2s ease;
+}
+.pair-primary-btn:disabled {
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.45);
+    box-shadow: none;
+    cursor: default;
+}
+.pair-primary-btn:not(:disabled):active { transform: scale(0.97); }
+.pair-primary-btn svg { width: 18px; height: 18px; }
+
+/* Bouton "My code" en header du sheet Add device */
+.sheet__my-code {
+    margin-right: 10px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 0.6px solid rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+    color: #FFFFFF;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.sheet__my-code:active { transform: scale(0.94); }
+
+/* Affichage du pair code (6 chars mono) + spinner initial + status */
+.mycode-display {
+    margin: 6px 0 4px;
+    padding: 20px 32px;
+    background: rgba(255, 255, 255, 0.10);
+    border: 0.6px solid rgba(255, 255, 255, 0.20);
+    border-radius: 20px;
+    min-width: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 88px;
+}
+.mycode-display__code {
+    font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+    font-size: 40px;
+    font-weight: 800;
+    color: #FFFFFF;
+    letter-spacing: 8px;
+    text-align: center;
+}
+.mycode-display__spinner {
+    width: 26px;
+    height: 26px;
+    border: 3px solid rgba(255, 255, 255, 0.25);
+    border-top-color: #FFFFFF;
+    border-radius: 50%;
+    animation: pair-spin 0.9s linear infinite;
+}
+.mycode-status {
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.65);
+    text-align: center;
+}
+
