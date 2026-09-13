@@ -1522,6 +1522,26 @@ body {
 }
 .send-slot__glyph--laptop { font-size: 55px; line-height: 66px; }
 
+/* Label "→ Sending to X" au-dessus du cloud — indique clairement la cible */
+.send-target-label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 128px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.90);
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
+    letter-spacing: -0.2px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 2;
+}
+.send-target-label--visible { opacity: 1; }
+
 /* Slot circle relative pour positionner le X unpair par-dessus */
 .send-slot__circle { position: relative; }
 

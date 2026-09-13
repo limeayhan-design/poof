@@ -114,6 +114,9 @@
                 <div class="send-hero__label">iPhone</div>
             </div>
 
+            <!-- Bandeau "Sending to: X" au-dessus du cloud pour indiquer clairement la cible -->
+            <div class="send-target-label" id="send-target-label"></div>
+
             <!-- Central cloud circle : morph cloud → photo/doc/clipboard selon le chip tapé
                  (spring anim iOS response 0.4 damping 0.75 — cf PoofSendView.centerIcon) -->
             <div class="send-cloud" id="send-cloud" data-icon="cloud" role="button" tabindex="0" aria-label="Send">
@@ -832,7 +835,9 @@
             document.querySelectorAll(".send-slot").forEach((s) => {
                 s.classList.toggle("send-slot--active", s.dataset.peerId === peerId);
             });
-            console.log("[Poof] active peer set to:", peerId);
+            const peer = Poof.peers.peers.find((p) => p.id === peerId);
+            console.log("[Poof] active peer set to:", peer?.name, peerId);
+            updateSendTargetLabel();
         }
 
         // Unpair : X sur un peer paired ou action explicite
@@ -939,6 +944,12 @@
     function renderDeviceSlots() {
         if (!window.Poof) return;
         const peers = Poof.peers.peers.slice(0, 3);
+        // Auto-sélectionne le dernier peer pairé s'il n'y a pas de sélection active
+        if (!Poof.activePeerId && peers.length > 0) {
+            Poof.activePeerId = peers[peers.length - 1].id;
+        }
+        // Update label "Sending to: X"
+        updateSendTargetLabel();
         const slots = document.querySelectorAll(".send-slot");
         slots.forEach((slot, i) => {
             const circle = slot.querySelector(".send-slot__circle");
@@ -961,7 +972,24 @@
                         <path d="M9.52557 15.269L9.52557 1.25732C9.52557 0.568082 8.95439 0 8.2616 0C7.56881 0 7.00739 0.568082 7.00739 1.25732L7.00739 15.269C7.00739 15.9551 7.56881 16.5232 8.2616 16.5232C8.95439 16.5232 9.52557 15.9551 9.52557 15.269ZM1.25732 9.51891L15.269 9.51891C15.9551 9.51891 16.5232 8.95439 16.5232 8.2616C16.5232 7.56881 15.9551 6.99762 15.269 6.99762L1.25732 6.99762C0.568082 6.99762 0 7.56881 0 8.2616C0 8.95439 0.568082 9.51891 1.25732 9.51891Z" fill="white" fill-opacity="0.85"/>
                     </svg>`;
             }
+            // Highlight le slot actif
+            slot.classList.toggle("send-slot--active", peer && Poof.activePeerId === peer.id);
         });
+    }
+
+    function updateSendTargetLabel() {
+        const el = document.getElementById("send-target-label");
+        if (!el || !window.Poof) return;
+        const peers = Poof.peers.peers;
+        const activeId = Poof.activePeerId;
+        const active = peers.find((p) => p.id === activeId) || peers[peers.length - 1];
+        if (active) {
+            el.textContent = `→ Sending to ${active.name || "device"}`;
+            el.classList.add("send-target-label--visible");
+        } else {
+            el.textContent = "No paired device — tap + to add one";
+            el.classList.add("send-target-label--visible");
+        }
     }
 
     function deviceIconSVG(platform) {
@@ -1562,6 +1590,7 @@
             checkAllJobsDone();
             return;
         }
+        console.log(`[Poof] Envoi vers ${peer.name} (${peer.id})`);
 
         const runOnce = async () => {
             if (job.kind === "clipboard" && job.clip.type !== "image") {
