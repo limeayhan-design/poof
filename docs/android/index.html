@@ -260,9 +260,8 @@
                     <span class="received-header__count" id="received-count">0</span>
                 </div>
                 <div class="received-header__spacer"></div>
-                <button class="received-header__history" type="button" data-action="open-history">
-                    <span>All history</span>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+                <button class="received-header__refresh" type="button" data-action="refresh-received" aria-label="Check for new files">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
                 </button>
             </div>
             <div class="received-content" id="received-content">
@@ -790,6 +789,16 @@
         // Retry Paste manuel depuis l'empty state clipboard (permission user gesture)
         if (action === "paste-clipboard") {
             handleClipboard();
+        }
+
+        // Refresh manuel Received : force le poll /relay/pending
+        if (action === "refresh-received") {
+            haptic(6);
+            if (window.recoverPendingFiles) {
+                window.recoverPendingFiles().catch((err) => console.error("[Poof] refresh failed:", err));
+            }
+            target.classList.add("received-header__refresh--spinning");
+            setTimeout(() => target.classList.remove("received-header__refresh--spinning"), 800);
         }
 
         // Share invite : Web Share API (iOS Safari + Android Chrome native), fallback copy
@@ -1854,6 +1863,43 @@
         const sig = new SignalingClient({ url: Poof.SERVER });
         Poof.signaling = sig;
 
+        // ============================================================
+        // LISTENERS ATTACHÉS AVANT CONNECT — évite de rater le 1er event
+        // ============================================================
+        sig.socket.on("relay-file-ready", async ({ fileId, meta }) => {
+            console.log("[Poof] relay-file-ready:", fileId, meta);
+            try {
+                const res = await fetch(`${Poof.SERVER}/relay/${fileId}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const blob = await res.blob();
+                window.addReceivedItem?.({
+                    id: fileId,
+                    kind: "file",
+                    name: meta?.name || "file",
+                    mime: meta?.mime || blob.type || "application/octet-stream",
+                    size: blob.size,
+                    senderId: meta?.senderDeviceId || "",
+                    ts: Date.now(),
+                    blobURL: URL.createObjectURL(blob),
+                    blob
+                });
+                if (navigator.vibrate) navigator.vibrate([15, 30, 15]);
+            } catch (err) {
+                console.error("[Poof] download failed:", err);
+            }
+        });
+        sig.socket.on("clipboard-inbound", ({ text, senderName, clipboardId }) => {
+            console.log("[Poof] clipboard-inbound from", senderName);
+            window.addReceivedItem?.({
+                id: clipboardId || String(Date.now()),
+                kind: "clipboard",
+                name: senderName ? `From ${senderName}` : "Clipboard",
+                text,
+                ts: Date.now()
+            });
+            if (navigator.vibrate) navigator.vibrate(10);
+        });
+
         sig.addEventListener("connected", async () => {
             console.log("[Poof] Signaling connected ✓");
             try {
@@ -1926,47 +1972,6 @@
         sig.addEventListener("pair-succeeded", (e) => {
             console.log("[Poof] pair success:", e.detail.peer);
             Poof.peers.upsert(e.detail.peer);
-        });
-
-        // ============================================================
-        // PHASE 3d — Réception : listener relay-file-ready + clipboard-inbound
-        // ============================================================
-        // Socket events non-standard : le SignalingClient les émet via
-        // this._emit avec les names camel-case ; ici on écoute via addEventListener
-        // sur la même EventTarget.
-        sig.socket.on("relay-file-ready", async ({ fileId, meta }) => {
-            console.log("[Poof] relay-file-ready:", fileId, meta);
-            try {
-                const res = await fetch(`${Poof.SERVER}/relay/${fileId}`);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const blob = await res.blob();
-                addReceivedItem({
-                    id: fileId,
-                    kind: "file",
-                    name: meta?.name || "file",
-                    mime: meta?.mime || blob.type || "application/octet-stream",
-                    size: blob.size,
-                    senderId: meta?.senderDeviceId || "",
-                    ts: Date.now(),
-                    blobURL: URL.createObjectURL(blob),
-                    blob
-                });
-                if (navigator.vibrate) navigator.vibrate([15, 30, 15]);
-            } catch (err) {
-                console.error("[Poof] download failed:", err);
-            }
-        });
-
-        sig.socket.on("clipboard-inbound", ({ text, senderName, clipboardId }) => {
-            console.log("[Poof] clipboard-inbound from", senderName);
-            addReceivedItem({
-                id: clipboardId || String(Date.now()),
-                kind: "clipboard",
-                name: senderName ? `From ${senderName}` : "Clipboard",
-                text,
-                ts: Date.now()
-            });
-            if (navigator.vibrate) navigator.vibrate(10);
         });
     }
 

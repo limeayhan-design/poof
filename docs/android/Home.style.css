@@ -519,6 +519,29 @@ body {
 .received-header__history:active { transform: scale(0.94); }
 .received-header__history svg { width: 11px; height: 11px; }
 
+/* Bouton refresh circulaire : force le poll /relay/pending manuellement */
+.received-header__refresh {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.18);
+    border: 0.6px solid rgba(255, 255, 255, 0.25);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.received-header__refresh:active { transform: scale(0.9); }
+.received-header__refresh svg { width: 14px; height: 14px; }
+@keyframes refresh-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.received-header__refresh--spinning svg { animation: refresh-spin 0.8s linear; }
+
 .received-content {
     flex: 1;
     min-height: 0;
