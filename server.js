@@ -268,6 +268,26 @@ const httpServer = createServer(async (req, res) => {
 
   if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
 
+  // GET /relay/pending?deviceId=X — liste des fileIds encore en attente pour
+  // ce device (uploads reçus alors que le device était offline). Le client
+  // PWA appelle ce endpoint à chaque reconnect / foreground return pour
+  // récupérer les fichiers ratés. Ne consomme rien : GET /relay/{fileId}
+  // suivant fait le download effectif + supprime côté serveur.
+  if (req.url?.startsWith('/relay/pending')) {
+    const u = new URL(req.url, 'http://localhost');
+    const deviceId = u.searchParams.get('deviceId') || '';
+    if (!deviceId) { res.writeHead(400); res.end(JSON.stringify({ ok: false, error: 'missing deviceId' })); return; }
+    const pending = [];
+    for (const [fileId, entry] of relayFiles.entries()) {
+      if (entry.targetId === deviceId) {
+        pending.push({ fileId, meta: entry.meta, uploadedAt: entry.uploadedAt });
+      }
+    }
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, pending }));
+    return;
+  }
+
   // Relay download — receiver GET pour récupérer le fichier binaire brut.
   // One-shot : le fichier est supprimé de la RAM serveur après lecture
   // pour éviter d'accumuler + garantir la promesse "vanish".
