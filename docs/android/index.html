@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#005EFF">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -824,6 +826,21 @@
             console.log("[Poof] active peer set to:", peerId);
         }
 
+        // Unpair : X sur un peer paired ou action explicite
+        if (action === "unpair-peer") {
+            const peerId = target.dataset.peerId;
+            if (!peerId || !window.Poof) return;
+            const peer = Poof.peers.peers.find((p) => p.id === peerId);
+            const name = peer?.name || "this device";
+            if (!confirm(`Unpair "${name}"?`)) return;
+            Poof.peers.remove(peerId);
+            if (Poof.activePeerId === peerId) Poof.activePeerId = null;
+            // Notifie le serveur pour retirer le peer de l'index (miroir iOS unpair)
+            if (Poof.signaling) Poof.signaling.broadcastUnpair(peerId);
+            haptic([20, 30]);
+            if (window.renderDeviceSlots) renderDeviceSlots();
+        }
+
         // My code : demande un pair code au serveur via pairAdvertise
         if (action === "open-my-code") {
             requestPairCode();
@@ -919,7 +936,10 @@
                 slot.dataset.peerId = peer.id;
                 slot.dataset.action = "select-peer";
                 label.textContent = peer.name || "Device";
-                circle.innerHTML = deviceIconSVG(peer.platform);
+                circle.innerHTML = deviceIconSVG(peer.platform) +
+                    `<button class="send-slot__unpair" type="button" data-action="unpair-peer" data-peer-id="${peer.id}" aria-label="Unpair">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                    </button>`;
             } else {
                 delete slot.dataset.peerId;
                 slot.dataset.action = "open-add-device";

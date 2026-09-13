@@ -1,3 +1,4 @@
+:root { color-scheme: only light; }
 * {
     margin: 0;
     padding: 0;
@@ -6,6 +7,7 @@
 }
 html, body {
     height: 100%;
+    color-scheme: only light;
     background: linear-gradient(180deg, #005EFF 0%, #797979 100%);
     overflow: hidden;
     overscroll-behavior: none;
@@ -1496,6 +1498,32 @@ body {
     text-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
 }
 .send-slot__glyph--laptop { font-size: 55px; line-height: 66px; }
+
+/* Slot circle relative pour positionner le X unpair par-dessus */
+.send-slot__circle { position: relative; }
+
+/* Bouton X unpair : petit cercle noir top-right du device circle, apparaît
+   au tap (long press natif compliqué en PWA), toujours visible pour clarté */
+.send-slot__unpair {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.60);
+    border: 0.8px solid rgba(255, 255, 255, 0.30);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    z-index: 3;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.send-slot__unpair:active { transform: scale(0.85); }
+.send-slot__unpair svg { width: 11px; height: 11px; }
 
 /* Slot pairé actif : ring bleu autour du cercle + label bleu */
 .send-slot--active .send-slot__circle {
