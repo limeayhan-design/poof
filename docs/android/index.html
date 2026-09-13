@@ -1962,15 +1962,29 @@
             }
         });
 
+        // Filet de sécurité : poll /relay/pending toutes les 4s tant que la
+        // PWA est foregrounded. Absorbe les cas où l'event socket a été
+        // manqué ou le socket déconnecté sans qu'on le sache.
+        setInterval(() => {
+            if (document.visibilityState === "visible") {
+                recoverPendingFiles().catch(() => {});
+            }
+        }, 4000);
+
         // Fonction : récupère les fichiers en attente sur le serveur pour ce device
+        // Dedup via un Set des fileIds déjà téléchargés (évite les doublons du poll)
+        const seenFileIds = new Set();
         async function recoverPendingFiles() {
             try {
                 const res = await fetch(`${Poof.SERVER}/relay/pending?deviceId=${encodeURIComponent(DeviceIdentity.deviceId)}`);
                 if (!res.ok) return;
                 const { pending } = await res.json();
                 if (!pending?.length) return;
-                console.log("[Poof] recovering", pending.length, "pending files");
-                for (const item of pending) {
+                const fresh = pending.filter((p) => !seenFileIds.has(p.fileId));
+                if (!fresh.length) return;
+                console.log("[Poof] recovering", fresh.length, "pending files");
+                for (const item of fresh) {
+                    seenFileIds.add(item.fileId);
                     try {
                         const dl = await fetch(`${Poof.SERVER}/relay/${item.fileId}`);
                         if (!dl.ok) continue;
