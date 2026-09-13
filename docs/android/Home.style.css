@@ -870,7 +870,7 @@ body {
    (cloud / photo / doc / clipboard) avec spring iOS response 0.4 damping 0.75 */
 .send-cloud {
     cursor: pointer;
-    touch-action: pan-y;
+    touch-action: none;
     transition: transform 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .send-cloud__icon {
