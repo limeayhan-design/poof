@@ -130,6 +130,16 @@ async function serveStatic(req, res) {
 }
 
 const httpServer = createServer(async (req, res) => {
+  // CORS — la PWA (origine différente) a besoin d'Access-Control-Allow-*
+  // pour envoyer les headers custom (X-File-Name, X-Target-Device-Id, etc.)
+  // qui déclenchent un preflight OPTIONS.
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Access-Control-Expose-Headers', 'X-File-Name, X-Mime-Type');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+
   // Support chat — POST routes (avant le guard GET-only).
   if (req.method === 'POST' && req.url === '/messages') {
     try {
