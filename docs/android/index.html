@@ -837,17 +837,20 @@
 
         // Unpair : X sur un peer paired ou action explicite
         if (action === "unpair-peer") {
+            e.preventDefault();
+            e.stopPropagation();
             const peerId = target.dataset.peerId;
+            console.log("[Poof] unpair-peer clicked — peerId:", peerId);
             if (!peerId || !window.Poof) return;
             const peer = Poof.peers.peers.find((p) => p.id === peerId);
             const name = peer?.name || "this device";
             if (!confirm(`Unpair "${name}"?`)) return;
             Poof.peers.remove(peerId);
             if (Poof.activePeerId === peerId) Poof.activePeerId = null;
-            // Notifie le serveur pour retirer le peer de l'index (miroir iOS unpair)
             if (Poof.signaling) Poof.signaling.broadcastUnpair(peerId);
             haptic([20, 30]);
             if (window.renderDeviceSlots) renderDeviceSlots();
+            console.log("[Poof] unpaired — remaining peers:", Poof.peers.peers.length);
         }
 
         // My code : demande un pair code au serveur via pairAdvertise
