@@ -14,7 +14,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <link rel="icon" type="image/png" href="icons/icon-192.png">
-    <link rel="stylesheet" href="Home.style.css?v=4">
+    <link rel="stylesheet" href="Home.style.css?v=13">
     <!-- Socket.IO client — bridge signaling vers poof-fgb8.onrender.com (Phase 3) -->
     <script src="vendor/socket.io.min.js"></script>
     <script>
@@ -41,6 +41,11 @@
     <!-- Header : "Poof" wordmark + "beta" badge + cloud outline top-right -->
     <div class="header-poof">Poof</div>
     <div class="header-beta">beta</div>
+    <!-- Status pill : point vert = connecté, rouge = offline (aide au debug) -->
+    <div class="header-status" id="header-status">
+        <span class="header-status__dot" id="header-status-dot"></span>
+        <span class="header-status__label" id="header-status-label">…</span>
+    </div>
     <svg class="header-cloud" xmlns="http://www.w3.org/2000/svg" viewBox="-1.5 -1.5 27.1664 19.341" fill="none" stroke="white" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
         <path d="M5.19871 16.0206L18.0879 16.0206C21.5156 16.0206 24.1664 13.4186 24.1664 10.0797C24.1664 6.69203 21.4738 4.13797 17.8624 4.14463C16.5329 1.51947 14.1248 0 11.1029 0C7.19134 0 3.94875 2.93859 3.5209 6.87586C1.47816 7.50347 0.143379 9.23195 0.143379 11.3551C0.143379 14.084 2.19363 16.0206 5.19871 16.0206Z"/>
     </svg>
@@ -976,6 +981,15 @@
             slot.classList.toggle("send-slot--active", peer && Poof.activePeerId === peer.id);
         });
     }
+
+    function updateConnectionStatus(connected) {
+        const dot = document.getElementById("header-status-dot");
+        const label = document.getElementById("header-status-label");
+        if (!dot || !label) return;
+        dot.classList.toggle("header-status__dot--on", !!connected);
+        label.textContent = connected ? "online" : "offline";
+    }
+    window.updateConnectionStatus = updateConnectionStatus;
 
     function updateSendTargetLabel() {
         const el = document.getElementById("send-target-label");
@@ -2012,7 +2026,22 @@
 
         sig.addEventListener("disconnected", (e) => {
             console.warn("[Poof] Signaling disconnected:", e.detail.reason);
+            updateConnectionStatus(false);
         });
+        sig.addEventListener("connected", () => updateConnectionStatus(true));
+
+        // Re-hello périodique (30s) : garantit que le serveur a toujours notre socket
+        // dans son devices map (au cas où reconnect silencieux, spin-down Render, etc.)
+        setInterval(() => {
+            if (sig.socket.connected) {
+                sig.hello({
+                    deviceId: DeviceIdentity.deviceId,
+                    name: DeviceIdentity.name,
+                    platform: DeviceIdentity.platform,
+                    knownPeerIds: Poof.peers.ids
+                }).catch(() => {});
+            }
+        }, 30000);
         sig.addEventListener("peer-online",  (e) => console.log("[Poof] peer online:",  e.detail.deviceId));
         sig.addEventListener("peer-offline", (e) => console.log("[Poof] peer offline:", e.detail.deviceId));
         sig.addEventListener("pair-succeeded", (e) => {

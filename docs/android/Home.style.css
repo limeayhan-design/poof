@@ -92,6 +92,40 @@ body {
     filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.3));
 }
 
+/* Pill statut signaling : dot vert/rouge + label mini */
+.header-status {
+    position: absolute;
+    top: 34px;
+    right: 82px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.28);
+    border-radius: 999px;
+    font-family: 'SF Pro', -apple-system, sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.85);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.header-status__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgb(255, 69, 58); /* iOS red = offline */
+    box-shadow: 0 0 4px rgba(255, 69, 58, 0.7);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+.header-status__dot--on {
+    background: rgb(52, 199, 89); /* iOS green = connected */
+    box-shadow: 0 0 6px rgba(52, 199, 89, 0.7);
+}
+
 /* ==============================================================
    CARD 1 : Transfer everywhere — 370×394 (Swift .frame exact)
    ============================================================== */
