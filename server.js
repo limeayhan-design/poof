@@ -64,6 +64,25 @@ setInterval(() => {
     else if (kept.length !== queue.length) pendingClipboards.set(deviceId, kept);
   }
 }, 5 * 60 * 1000);
+
+// Unpair events queued for offline target devices. Guarantees eventual delivery:
+// even if the target is powered off for days, the moment it reconnects (hello)
+// we flush the pending unpairs so its local peer list stays in sync with the
+// sender's intent. Prevents "ghost pairs" where user removes a peer on device A
+// but device B still shows it as paired forever.
+// Key: targetDeviceId → { senderId → ts }. Map-of-map so multiple senders can
+// unpair the same target while it's offline without collision. TTL 30 days.
+const pendingUnpairs = new Map();
+const UNPAIR_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+setInterval(() => {
+  const now = Date.now();
+  for (const [targetId, senders] of pendingUnpairs) {
+    for (const [senderId, ts] of senders) {
+      if (now - ts > UNPAIR_TTL_MS) senders.delete(senderId);
+    }
+    if (senders.size === 0) pendingUnpairs.delete(targetId);
+  }
+}, 60 * 60 * 1000);
 setInterval(() => {
   const now = Date.now();
   for (const [id, entry] of relayFiles) {
@@ -715,6 +734,23 @@ io.on('connection', (socket) => {
       }
       pendingClipboards.delete(deviceId);
     }
+
+    // Idem pour les unpair events accumulés pendant que le target était
+    // offline. Sans ce flush, un user qui unpair l'iPhone depuis le Mac
+    // pendant que l'iPhone est éteint retrouverait l'iPhone toujours paired
+    // au réveil — désync visible et frustrante. On rejoue tous les senders
+    // qui ont demandé un unpair puis on purge, et on retire les entrées
+    // correspondantes du knownPeerIds local pour couper les broadcasts.
+    const pendingUp = pendingUnpairs.get(deviceId);
+    if (pendingUp && pendingUp.size > 0) {
+      const me = devices.get(deviceId);
+      for (const senderId of pendingUp.keys()) {
+        console.log(`[Poof] flush pending unpair ${senderId} → ${deviceId}`);
+        socket.emit('peer-unpaired', { deviceId: senderId });
+        if (me) me.knownPeerIds.delete(senderId);
+      }
+      pendingUnpairs.delete(deviceId);
+    }
   });
 
   // Un device (Mac Me Card, iPhone PhotosPicker) pousse son avatar + name.
@@ -873,17 +909,28 @@ io.on('connection', (socket) => {
 
   // Notify a paired peer that this device removed it from its paired list.
   // Also drops mutual presence subscription so ghost "online" events stop.
+  // If the target is offline right now, the unpair is queued and flushed on
+  // that device's next hello — guarantees the mirror is applied regardless
+  // of connectivity state at the moment the user tapped Unpair.
   socket.on('unpair', ({ deviceId } = {}) => {
     if (typeof deviceId !== 'string' || !deviceId) return;
     const me = socketToDevice.get(socket.id);
-    const meEntry = me && devices.get(me);
+    if (!me) return;
+    const meEntry = devices.get(me);
     if (meEntry) meEntry.knownPeerIds.delete(deviceId);
     const target = devices.get(deviceId);
     if (target) {
-      const targetEntry = devices.get(deviceId);
-      if (targetEntry && me) targetEntry.knownPeerIds.delete(me);
+      target.knownPeerIds.delete(me);
       io.to(target.socketId).emit('peer-unpaired', { deviceId: me });
+      return;
     }
+    // Target offline → queue for next hello.
+    let queue = pendingUnpairs.get(deviceId);
+    if (!queue) {
+      queue = new Map();
+      pendingUnpairs.set(deviceId, queue);
+    }
+    queue.set(me, Date.now());
   });
 
   // ---- 4. WebRTC relay ----------------------------------------------------
