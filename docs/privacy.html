@@ -109,7 +109,8 @@
     <h2>5. Chiffrement et sécurité</h2>
     <ul>
       <li><strong>Transport</strong> — toutes les connexions entre l'app et notre serveur utilisent HTTPS/TLS 1.3.</li>
-      <li><strong>Fichiers Secure (Premium)</strong> — chiffrement AES-256 supplémentaire appliqué sur votre appareil avant l'envoi, en plus du chiffrement HTTPS. Les fichiers en attente sont supprimés du serveur dès leur réception, et au plus tard après 1 heure.</li>
+      <li><strong>Chiffrement de bout en bout</strong> — entre vos appareils iPhone, iPad et Mac équipés de Poof, chaque fichier est chiffré sur l'appareil qui l'envoie (Curve25519 + AES-256-GCM) et ne peut être déchiffré que par l'appareil qui le reçoit. La clé privée ne quitte jamais votre appareil : notre serveur ne reçoit que des données chiffrées et des clés publiques. Les envois vers la version web, Android ou Windows sont chiffrés en transit (HTTPS).</li>
+      <li><strong>Durée de conservation</strong> — les fichiers en attente sont supprimés du serveur dès leur réception, et au plus tard après 1 heure.</li>
       <li><strong>Serveur</strong> — hébergé chez Render (États-Unis / Union Européenne selon la région), accès restreint, mots de passe hachés.</li>
     </ul>
 

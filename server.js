@@ -30,8 +30,19 @@ function saveSupportThreads() {
 // dès leur téléchargement. Cleanup 5 min.
 const relayFiles = new Map(); // fileId -> { path, size, meta, targetId, uploadedAt }
 const RELAY_TTL_MS = 60 * 60 * 1000;
-// Doit rester aligné sur PoofRelayClient.maxUploadBytes (iOS/macOS).
-const RELAY_MAX_BYTES = 500 * 1024 * 1024;
+// PoofRelayClient.maxUploadBytes (500 Mo de fichier en clair) + marge pour
+// le surcoût du chiffrement E2E par blocs (16 o / Mo) et de la compression.
+const RELAY_MAX_BYTES = 520 * 1024 * 1024;
+// Clés publiques E2E (Curve25519, base64) publiées dans hello. Uniquement des
+// clés PUBLIQUES : le serveur ne peut rien déchiffrer avec. Persistées sur
+// disque pour survivre aux redémarrages (re-publiées à chaque hello sinon).
+const KEYS_FILE = join(tmpdir(), 'poof-public-keys.json');
+const publicKeys = new Map(Object.entries((() => {
+  try { return JSON.parse(readFileSync(KEYS_FILE, 'utf8')); } catch { return {}; }
+})()));
+function savePublicKeys() {
+  try { writeFileSync(KEYS_FILE, JSON.stringify(Object.fromEntries(publicKeys))); } catch {}
+}
 // Budget disque total des fichiers en attente (+ uploads en cours). Au-delà
 // on répond 503 (le client réessaie plus tard) au lieu de remplir le disque.
 const RELAY_MAX_TOTAL_BYTES = 3 * 1024 * 1024 * 1024;
@@ -434,6 +445,15 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
+  // GET /keys/:deviceId — clé publique E2E d'un appareil.
+  if (req.method === 'GET' && req.url?.startsWith('/keys/')) {
+    const deviceId = decodeURIComponent(req.url.slice('/keys/'.length).split('?')[0]).toLowerCase();
+    const publicKey = publicKeys.get(deviceId);
+    if (!publicKey) { sendJson(res, 404, { ok: false, error: 'unknown-device' }); return; }
+    sendJson(res, 200, { ok: true, publicKey });
+    return;
+  }
+
   // Support chat — GET routes.
   if (req.url?.startsWith('/messages')) {
     const u = new URL(req.url, 'http://x');
@@ -777,7 +797,7 @@ io.on('connection', (socket) => {
 
   // ---- 1. Identity + subscription -----------------------------------------
   socket.on('hello', (payload = {}, ack) => {
-    const { deviceId, name, platform, knownPeerIds = [], appleUserId = null } = payload;
+    const { deviceId, name, platform, knownPeerIds = [], appleUserId = null, publicKey = null } = payload;
     console.log(`[Poof] hello from socket=${socket.id} deviceId=${deviceId} name=${name} platform=${platform} account=${appleUserId ? 'yes' : 'no'}`);
     if (typeof deviceId !== 'string' || !deviceId) {
       return ack?.({ ok: false, error: 'invalid-deviceId' });
@@ -789,6 +809,15 @@ io.on('connection', (socket) => {
       oldSocket?.disconnect(true);
       devices.delete(deviceId);
       socketToDevice.delete(existing.socketId);
+    }
+
+    // Clé publique E2E : 32 octets en base64 (44 caractères).
+    if (typeof publicKey === 'string' && /^[A-Za-z0-9+/]{43}=$/.test(publicKey)) {
+      const id = deviceId.toLowerCase();
+      if (publicKeys.get(id) !== publicKey) {
+        publicKeys.set(id, publicKey);
+        savePublicKeys();
+      }
     }
 
     devices.set(deviceId, {
