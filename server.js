@@ -908,6 +908,18 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Suppression de compte (Guideline 5.1.1(v)) : efface le profil synchronisé
+  // (photo + nom) lié à l'identifiant Apple, et détache ce device du compte.
+  socket.on('account-delete', (payload = {}) => {
+    const { appleUserId } = payload;
+    if (typeof appleUserId !== 'string' || !appleUserId) return;
+    accountAvatars.delete(appleUserId);
+    const me = socketToDevice.get(socket.id);
+    const d = me && devices.get(me);
+    if (d && d.appleUserId === appleUserId) d.appleUserId = null;
+    console.log('[Poof] account deleted (synced profile removed)');
+  });
+
   socket.on('subscribe', ({ deviceIds = [] } = {}) => {
     const me = socketToDevice.get(socket.id);
     const d = me && devices.get(me);
