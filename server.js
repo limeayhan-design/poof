@@ -29,7 +29,26 @@ function saveSupportThreads() {
 // En RAM (Map), TTL 1h, cap 50 MB par fichier. Cleanup 5min.
 const relayFiles = new Map(); // fileId -> { data: Buffer, meta, targetId, uploadedAt }
 const RELAY_TTL_MS = 60 * 60 * 1000;
+// Doit rester aligné sur PoofRelayClient.maxUploadBytes (iOS/macOS).
 const RELAY_MAX_BYTES = 50 * 1024 * 1024;
+// Budget RAM total des fichiers en attente — l'instance Render free a 512 Mo.
+// Au-delà on répond 503 (le client réessaie après un délai) au lieu de
+// laisser le process se faire tuer, ce qui perdait TOUS les fichiers en cours.
+const RELAY_MAX_TOTAL_BYTES = 300 * 1024 * 1024;
+// transferId -> { fileId, at } : un client qui renvoie le même fichier
+// (réponse perdue, timeout) récupère le fileId existant au lieu de créer un
+// doublon chez le destinataire — même si celui-ci l'a déjà téléchargé.
+const relayTransfers = new Map();
+function relayBytesInUse() {
+  let total = 0;
+  for (const entry of relayFiles.values()) total += entry.data.length;
+  return total;
+}
+function sendJson(res, status, body) {
+  if (res.headersSent) return;
+  res.writeHead(status, { 'content-type': 'application/json' });
+  res.end(JSON.stringify(body));
+}
 
 // Avatar & displayName sync entre devices d'un même compte iCloud.
 // Clé = appleUserId (fourni par Sign in with Apple, stable et cross-device).
@@ -87,6 +106,9 @@ setInterval(() => {
   const now = Date.now();
   for (const [id, entry] of relayFiles) {
     if (now - entry.uploadedAt > RELAY_TTL_MS) relayFiles.delete(id);
+  }
+  for (const [transferId, entry] of relayTransfers) {
+    if (now - entry.at > RELAY_TTL_MS) relayTransfers.delete(transferId);
   }
 }, 5 * 60 * 1000);
 function readJsonBody(req) {
@@ -182,43 +204,81 @@ const httpServer = createServer(async (req, res) => {
   // la meta (nom, mime, target device, secure/track/compressed flags).
   // Serveur push un event socket.io `relay-file-ready` au target device.
   if (req.method === 'POST' && req.url === '/relay/upload') {
+    // Refus immédiat et PROPRE (413/503 JSON) quand c'est possible : avant,
+    // le serveur coupait la socket en plein envoi et le client, croyant à
+    // une coupure réseau, renvoyait le fichier 3 fois pour rien.
+    const declared = Number(req.headers['content-length'] || 0);
+    if (declared > RELAY_MAX_BYTES) {
+      sendJson(res, 413, { ok: false, error: 'too-large', maxBytes: RELAY_MAX_BYTES });
+      req.resume();
+      return;
+    }
+    if (declared && relayBytesInUse() + declared > RELAY_MAX_TOTAL_BYTES) {
+      sendJson(res, 503, { ok: false, error: 'busy' });
+      req.resume();
+      return;
+    }
     const chunks = [];
     let total = 0;
     let aborted = false;
     req.on('data', c => {
+      if (aborted) return;
       total += c.length;
       if (total > RELAY_MAX_BYTES) {
         aborted = true;
-        req.destroy();
+        chunks.length = 0;
+        res.once('finish', () => req.destroy());
+        sendJson(res, 413, { ok: false, error: 'too-large', maxBytes: RELAY_MAX_BYTES });
         return;
       }
       chunks.push(c);
     });
     req.on('end', () => {
-      if (aborted) { res.writeHead(413); res.end(); return; }
+      if (aborted) return;
+      const transferId = req.headers['x-transfer-id'] || '';
+      // Doublon (le client réessaie un upload déjà reçu) → même fileId,
+      // pas de second événement chez le destinataire.
+      const existing = transferId && relayTransfers.get(transferId);
+      if (existing) {
+        sendJson(res, 200, { ok: true, fileId: existing.fileId, duplicate: true });
+        return;
+      }
       const data = Buffer.concat(chunks);
+      if (relayBytesInUse() + data.length > RELAY_MAX_TOTAL_BYTES) {
+        sendJson(res, 503, { ok: false, error: 'busy' });
+        return;
+      }
       const fileId = randomBytes(12).toString('hex');
       const targetId = req.headers['x-target-device-id'] || '';
+      let secureConfig = null;
+      let trackConfig = null;
+      try {
+        secureConfig = req.headers['x-secure-config'] ? JSON.parse(req.headers['x-secure-config']) : null;
+        trackConfig = req.headers['x-track-config'] ? JSON.parse(req.headers['x-track-config']) : null;
+      } catch {
+        sendJson(res, 400, { ok: false, error: 'invalid-config-header' });
+        return;
+      }
       const meta = {
         name: req.headers['x-file-name'] || 'file',
         mime: req.headers['x-mime-type'] || 'application/octet-stream',
         size: data.length,
         senderDeviceId: req.headers['x-sender-device-id'] || '',
-        secureConfig: req.headers['x-secure-config'] ? JSON.parse(req.headers['x-secure-config']) : null,
-        trackConfig: req.headers['x-track-config'] ? JSON.parse(req.headers['x-track-config']) : null,
+        secureConfig,
+        trackConfig,
         compressed: req.headers['x-compressed'] === 'true',
-        transferId: req.headers['x-transfer-id'] || randomBytes(8).toString('hex')
+        transferId: transferId || randomBytes(8).toString('hex')
       };
       relayFiles.set(fileId, { data, meta, targetId, uploadedAt: Date.now() });
+      if (transferId) relayTransfers.set(transferId, { fileId, at: Date.now() });
       // Push socket.io au target si connecté (sinon file en attente TTL 1h).
       const target = devices.get(targetId);
       if (target) {
         io.to(target.socketId).emit('relay-file-ready', { fileId, meta });
       }
-      res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, fileId }));
+      sendJson(res, 200, { ok: true, fileId });
     });
-    req.on('error', () => { res.writeHead(500); res.end(); });
+    req.on('error', () => sendJson(res, 500, { ok: false, error: 'upload-error' }));
     return;
   }
   // Relay clipboard — sender POST { targetDeviceId, senderDeviceId, senderName, text }.
