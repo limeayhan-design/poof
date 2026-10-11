@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Support — Poof</title>
+  <meta name="description" content="Help and contact for the Poof app." />
+  <meta name="theme-color" content="#005EFF" />
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      background: linear-gradient(180deg, #005EFF 0%, #3F73C4 45%, #797979 100%);
+      background-attachment: fixed;
+      color: #fff;
+      -webkit-font-smoothing: antialiased;
+      padding: 40px 20px 60px;
+      min-height: 100dvh;
+    }
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      border: 0.6px solid rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      padding: 40px 30px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+    }
+    .back { display: inline-flex; align-items: center; gap: 6px; color: rgba(255, 255, 255, 0.65); font-size: 13px; font-weight: 600; text-decoration: none; margin-bottom: 24px; }
+    .back:hover { color: #fff; }
+    h1 { font-size: 32px; font-weight: 900; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .last-updated { font-size: 12px; color: rgba(255, 255, 255, 0.55); margin-bottom: 32px; }
+    h2 { font-size: 18px; font-weight: 800; margin: 28px 0 10px; color: #fff; }
+    p, li { font-size: 14px; font-weight: 500; line-height: 1.65; color: rgba(255, 255, 255, 0.85); margin-bottom: 10px; }
+    ul { padding-left: 22px; }
+    li { margin-bottom: 6px; }
+    strong { color: #fff; font-weight: 700; }
+    a { color: #0AE2FF; text-decoration: underline; text-underline-offset: 3px; }
+    .contact { margin-bottom: 8px; padding: 16px; background: rgba(255, 255, 255, 0.06); border-radius: 14px; border: 0.6px solid rgba(255, 255, 255, 0.12); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a class="back" href="./">← Back to Poof</a>
+    <h1>Support</h1>
+    <p class="last-updated">Last updated: October 11, 2026</p>
+
+    <div class="contact">
+      <h3 style="margin-top: 0; font-size: 15px; font-weight: 800;">Contact us</h3>
+      <p style="margin-bottom: 0;">Email <a href="mailto:Limeayhan@icloud.com?subject=Poof%20support"><strong>Limeayhan@icloud.com</strong></a>. We usually reply within 48 hours. You can also tap <strong>Settings → Contact support</strong> in the app.</p>
+    </div>
+
+    <h2>How do I add a device?</h2>
+    <p>Install Poof on both devices. On the <strong>Send</strong> tab, tap <strong>+</strong> and pick a method: nearby devices, scan a QR code, send an invitation, or enter a code manually.</p>
+
+    <h2>How do I send a file?</h2>
+    <p>Pick a photo or a file on the Send tab, choose the device, then swipe up. The progress shows in the Dynamic Island, and the file appears in the <strong>Received</strong> tab of the other device.</p>
+
+    <h2>How big can a file be?</h2>
+    <ul>
+      <li>Free: up to 100 MB per file</li>
+      <li>Premium: up to 500 MB per file</li>
+      <li>Offline mode (devices nearby, no internet): up to 1 GB per file</li>
+    </ul>
+
+    <h2>The first send of the day is slow. Why?</h2>
+    <p>Our relay server can take a few seconds to wake up after a quiet period. The next sends are fast.</p>
+
+    <h2>Restore or cancel Premium</h2>
+    <p>To restore a purchase, open the Premium screen and tap <strong>Restore</strong>. To cancel a subscription, go to <strong>iPhone Settings → [your name] → Subscriptions → Poof</strong>.</p>
+
+    <h2>Delete my account</h2>
+    <p>In the app, go to <strong>Settings → Delete account</strong>. Your account and its data are removed from our server.</p>
+
+    <h2>Privacy</h2>
+    <p>Files sent between Apple devices running Poof are end-to-end encrypted. Read our <a href="./privacy.html">Privacy Policy</a> and <a href="./terms.html">Terms of Use</a>.</p>
+  </div>
+</body>
+</html>
